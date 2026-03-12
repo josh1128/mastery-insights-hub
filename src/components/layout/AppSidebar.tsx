@@ -1,7 +1,7 @@
 import {
-  Home, BookOpen, Calendar, MessageCircle, Shield,
-  LayoutDashboard, Users, FileText, CalendarDays, Package,
-  Zap, BarChart3, MessageSquare, TrendingUp, Brain, Award
+  Home, BookOpen, MessageCircle,
+  LayoutDashboard, Users, FileText,
+  Zap, TrendingUp, Brain, Award
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -14,7 +14,6 @@ import {
 const mainItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Courses", url: "/courses", icon: BookOpen },
-  { title: "Events", url: "/events", icon: Calendar },
   { title: "Chat", url: "/chat", icon: MessageCircle },
 ];
 
@@ -22,15 +21,11 @@ const adminItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Members", url: "/admin/members", icon: Users },
   { title: "Content", url: "/admin/content", icon: FileText },
-  { title: "Events", url: "/admin/events", icon: CalendarDays },
-  { title: "Products", url: "/admin/products", icon: Package },
   { title: "Automations", url: "/admin/automations", icon: Zap },
 ];
 
 const insightItems = [
   { title: "Engagement", url: "/insights/engagement", icon: TrendingUp },
-  { title: "Messages", url: "/insights/messages", icon: MessageSquare },
-  { title: "Products", url: "/insights/products", icon: BarChart3 },
   { title: "Mastery", url: "/insights/mastery", icon: Brain },
 ];
 

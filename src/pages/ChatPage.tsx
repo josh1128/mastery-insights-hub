@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Send, Plus, User, Circle } from "lucide-react";
+import { Search, Send, Circle } from "lucide-react";
+import { members } from "@/data/members";
 
 interface Message {
   id: string;
@@ -26,58 +27,39 @@ interface Conversation {
   messages: Message[];
 }
 
-const initialConversations: Conversation[] = [
-  {
-    id: "c1", studentName: "Sarah Johnson", studentInitials: "SJ",
-    lastMessage: "I'm struggling with the GDPR module, can you help?",
-    lastTimestamp: new Date(Date.now() - 1000 * 60 * 5), unread: 2, online: true,
-    messages: [
-      { id: "m1", senderId: "student", text: "Hi professor, I had a question about the SOC 2 module.", timestamp: new Date(Date.now() - 1000 * 60 * 60), isInstructor: false },
-      { id: "m2", senderId: "instructor", text: "Of course, Sarah! What's your question?", timestamp: new Date(Date.now() - 1000 * 60 * 55), isInstructor: true },
-      { id: "m3", senderId: "student", text: "I'm struggling with the GDPR module, can you help?", timestamp: new Date(Date.now() - 1000 * 60 * 5), isInstructor: false },
-    ],
-  },
-  {
-    id: "c2", studentName: "Mike Chen", studentInitials: "MC",
-    lastMessage: "Thanks for the extra practice materials!",
-    lastTimestamp: new Date(Date.now() - 1000 * 60 * 30), unread: 0, online: true,
-    messages: [
-      { id: "m4", senderId: "instructor", text: "Hi Mike, I noticed you scored below the mastery threshold on Data Classification. I've assigned some extra practice.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), isInstructor: true },
-      { id: "m5", senderId: "student", text: "Thanks for the extra practice materials!", timestamp: new Date(Date.now() - 1000 * 60 * 30), isInstructor: false },
-    ],
-  },
-  {
-    id: "c3", studentName: "Emily Davis", studentInitials: "ED",
-    lastMessage: "When is the retake available?",
-    lastTimestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), unread: 1, online: false,
-    messages: [
-      { id: "m6", senderId: "student", text: "I failed the phishing quiz. Can I retake it?", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), isInstructor: false },
-      { id: "m7", senderId: "instructor", text: "Yes, I've enabled a retake for you. Review the material first.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2.5), isInstructor: true },
-      { id: "m8", senderId: "student", text: "When is the retake available?", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), isInstructor: false },
-    ],
-  },
-  {
-    id: "c4", studentName: "James Wilson", studentInitials: "JW",
-    lastMessage: "Got it, will review before retaking.",
-    lastTimestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), unread: 0, online: false,
-    messages: [
-      { id: "m9", senderId: "instructor", text: "James, your confidence self-report was very low on the Incident Response module. Would you like to schedule a 1-on-1?", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6), isInstructor: true },
-      { id: "m10", senderId: "student", text: "Got it, will review before retaking.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), isInstructor: false },
-    ],
-  },
-  {
-    id: "c5", studentName: "Lisa Park", studentInitials: "LP",
-    lastMessage: "Completed all modules with mastery!",
-    lastTimestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), unread: 0, online: false,
-    messages: [
-      { id: "m11", senderId: "student", text: "Completed all modules with mastery!", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), isInstructor: false },
-    ],
-  },
+const sampleMessages = [
+  "I'm struggling with this module, can you help?",
+  "Thanks for the extra practice materials!",
+  "When is the retake available?",
+  "Got it, will review before retaking.",
+  "Completed all modules with mastery!",
+  "Can we discuss the quiz results?",
+  "I need more time on this topic.",
+  "The resources you sent were very helpful.",
 ];
 
+// Build conversations from shared members
+const initialConversations: Conversation[] = members.slice(0, 10).map((m, i) => ({
+  id: `c-${m.id}`,
+  studentName: m.name,
+  studentInitials: m.initials,
+  lastMessage: sampleMessages[i % sampleMessages.length],
+  lastTimestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
+  unread: i < 2 ? i + 1 : 0,
+  online: i < 3,
+  messages: [
+    {
+      id: `m-${m.id}-1`,
+      senderId: "student",
+      text: sampleMessages[i % sampleMessages.length],
+      timestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
+      isInstructor: false,
+    },
+  ],
+}));
+
 const formatTime = (date: Date) => {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
+  const diff = Date.now() - date.getTime();
   if (diff < 1000 * 60 * 60) return `${Math.floor(diff / 60000)}m ago`;
   if (diff < 1000 * 60 * 60 * 24) return `${Math.floor(diff / 3600000)}h ago`;
   return date.toLocaleDateString();
@@ -85,13 +67,12 @@ const formatTime = (date: Date) => {
 
 const ChatPage = () => {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-  const [selectedId, setSelectedId] = useState<string>("c1");
+  const [selectedId, setSelectedId] = useState<string>(initialConversations[0].id);
   const [messageText, setMessageText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const selected = conversations.find(c => c.id === selectedId);
-
   const filteredConversations = conversations.filter(c =>
     c.studentName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -116,7 +97,6 @@ const ChatPage = () => {
     ));
     setMessageText("");
 
-    // Simulate student reply after 2 seconds
     setTimeout(() => {
       const replies = [
         "Thank you for reaching out!",
@@ -142,15 +122,14 @@ const ChatPage = () => {
 
   return (
     <div className="animate-fade-in h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Chat</h1>
           <p className="text-muted-foreground text-sm mt-1">Message your learners directly</p>
         </div>
       </div>
 
-      <Card className="h-[calc(100%-4rem)] flex overflow-hidden">
-        {/* Conversations list */}
+      <Card className="h-[calc(100%-5rem)] flex overflow-hidden">
         <div className="w-80 border-r flex flex-col">
           <div className="p-3 border-b">
             <div className="relative">
@@ -187,7 +166,6 @@ const ChatPage = () => {
           </ScrollArea>
         </div>
 
-        {/* Message thread */}
         {selected ? (
           <div className="flex-1 flex flex-col">
             <div className="p-4 border-b flex items-center gap-3">

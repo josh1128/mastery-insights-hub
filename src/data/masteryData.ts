@@ -1,6 +1,8 @@
 import { Brain, AlertTriangle, TrendingDown, Eye, Sparkles } from "lucide-react";
+import { members, getMemberModuleData } from "./members";
+import { courses } from "./courses";
 
-// --- Threshold config with per-cluster granularity ---
+// --- Threshold config ---
 export interface ThresholdConfig {
   masteryMinConfidence: number;
   masteryMinScore: number;
@@ -35,7 +37,7 @@ export const clusterColors: Record<ClusterName, string> = {
 };
 
 export const clusterMeta: Record<ClusterName, { label: string; icon: typeof Brain; desc: string; colorClass: string }> = {
-  mastery: { label: "Mastery Achieved", icon: Brain, desc: "High confidence + high score", colorClass: "text-success" },
+  mastery: { label: "True Mastery", icon: Brain, desc: "High confidence + high score", colorClass: "text-success" },
   guessing: { label: "Possible Guessing", icon: Eye, desc: "Low confidence + high score", colorClass: "text-chart-info" },
   misconception: { label: "Misconception Risk", icon: AlertTriangle, desc: "High confidence + low score", colorClass: "text-destructive" },
   struggling: { label: "Struggling", icon: TrendingDown, desc: "Low confidence + low score", colorClass: "text-warning" },
@@ -44,6 +46,7 @@ export const clusterMeta: Record<ClusterName, { label: string; icon: typeof Brai
 
 // --- Student data point ---
 export interface LearnerDataPoint {
+  id: string;
   name: string;
   confidence: number;
   score: number;
@@ -59,34 +62,48 @@ export function classifyStudent(s: { confidence: number; score: number }, t: Thr
   return "developing";
 }
 
-// --- Module data generation ---
-export interface StudentPoint {
-  name: string;
-  confidence: number;
-  score: number;
-}
+/**
+ * Get classified learner data for a specific course + module (or "all" modules).
+ */
+export function getLearnerDataForModule(
+  courseId: string,
+  moduleId: string,
+  thresholds: ThresholdConfig
+): LearnerDataPoint[] {
+  const course = courses.find(c => c.id === courseId);
+  if (!course) return [];
 
-const generateModuleData = (seed: number): StudentPoint[] => {
-  const rng = (s: number) => { s = Math.sin(s) * 10000; return s - Math.floor(s); };
-  const data: StudentPoint[] = [];
-  for (let i = 0; i < 55; i++) {
-    const r1 = rng(seed + i * 7);
-    const r2 = rng(seed + i * 13 + 3);
-    data.push({
-      name: `Student ${i + 1}`,
-      confidence: Math.round(r1 * 100),
-      score: Math.round(r2 * 100),
+  const enrolledMembers = members.filter(m => m.enrolledCourseIds.includes(courseId));
+
+  if (moduleId === "all") {
+    // Average across all modules
+    return enrolledMembers.map(m => {
+      let totalScore = 0, totalConf = 0;
+      course.modules.forEach(mod => {
+        const data = getMemberModuleData(m.id, courseId, mod.id);
+        totalScore += data.score;
+        totalConf += data.confidence;
+      });
+      const avg = {
+        score: Math.round(totalScore / course.modules.length),
+        confidence: Math.round(totalConf / course.modules.length),
+      };
+      return {
+        id: m.id,
+        name: m.name,
+        ...avg,
+        cluster: classifyStudent(avg, thresholds),
+      };
     });
   }
-  return data;
-};
 
-export const moduleDataMap: Record<string, { label: string; data: StudentPoint[] }> = {
-  all: { label: "All Modules", data: generateModuleData(42) },
-  soc2: { label: "SOC 2", data: generateModuleData(101) },
-  gdpr: { label: "GDPR", data: generateModuleData(202) },
-  phishing: { label: "Phishing", data: generateModuleData(303) },
-  dataclass: { label: "Data Classification", data: generateModuleData(404) },
-  incident: { label: "Incident Response", data: generateModuleData(505) },
-  final: { label: "Final Assessment", data: generateModuleData(606) },
-};
+  return enrolledMembers.map(m => {
+    const data = getMemberModuleData(m.id, courseId, moduleId);
+    return {
+      id: m.id,
+      name: m.name,
+      ...data,
+      cluster: classifyStudent(data, thresholds),
+    };
+  });
+}

@@ -15,7 +15,7 @@ const PlaceholderPage = ({ title, description }: { title: string; description: s
 );
 
 export const EventsPage = () => <PlaceholderPage title="Events" description="Manage your learning events and webinars" />;
-export const ChatPage = () => <PlaceholderPage title="Chat" description="Communicate with your learners" />;
+
 export const AdminDashboard = () => <PlaceholderPage title="Admin Dashboard" description="Manage your platform" />;
 export const MembersPage = () => <PlaceholderPage title="Members" description="View and manage platform members" />;
 export const ContentPage = () => <PlaceholderPage title="Content" description="Manage your learning content" />;

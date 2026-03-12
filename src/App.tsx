@@ -11,8 +11,9 @@ import CourseDetail from "./pages/CourseDetail";
 import EngagementPage from "./pages/insights/Engagement";
 import MasteryPage from "./pages/insights/Mastery";
 import CertificateBuilder from "./pages/CertificateBuilder";
+import ChatPage from "./pages/ChatPage";
 import {
-  EventsPage, ChatPage, AdminDashboard, MembersPage,
+  EventsPage, AdminDashboard, MembersPage,
   ContentPage, AdminEventsPage, ProductsPage, AutomationsPage,
   MessagesInsight, ProductsInsight,
 } from "./pages/PlaceholderPages";

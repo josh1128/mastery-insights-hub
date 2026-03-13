@@ -1,19 +1,27 @@
-import { useReducer, useEffect } from "react";
+import { useReducer, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Users, BookOpen, Award, Play, Video, FileText, File, Lock } from "lucide-react";
+import { ArrowLeft, Users, BookOpen, Award, Play, Video, FileText, File, Lock, MessageSquare } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getCourse } from "@/data/courses";
 import { members } from "@/data/members";
 import { contentStore } from "@/data/contentStore";
 import { PageGlow } from "@/components/decorative/PageDecorations";
+import { getClusterContentForModule } from "@/lib/clusterModuleContent";
+import { clusterColors, clusterMeta, type ClusterName } from "@/data/masteryData";
+import { ClusterSelector } from "@/components/course/ClusterSelector";
+import { ResourcePreviewModal } from "@/components/course/ResourcePreviewModal";
+import type { Resource } from "@/data/contentStore";
 
 const CourseDetail = () => {
   const { id } = useParams();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
+  const [selectedClusterByModule, setSelectedClusterByModule] = useState<Record<string, ClusterName>>({});
+  const [resourcePreview, setResourcePreview] = useState<Resource | null>(null);
+
   useEffect(() => {
     const unsub = contentStore.subscribe(forceUpdate);
     return () => { unsub(); };
@@ -82,26 +90,49 @@ const CourseDetail = () => {
                 ) : (
                   <Accordion type="multiple" className="space-y-2">
                     {courseModules.map(mod => {
-                      const modQuizzes = contentStore.getQuizzesByModule(course.id, mod.id).filter(q => !q.isRetest);
-                      const modVideos = contentStore.getVideoLecturesByModule(course.id, mod.id);
-                      const modResources = contentStore.getResourcesByModule(course.id, mod.id).filter(r => !r.isOptional);
-                      const itemCount = modQuizzes.length + modVideos.length + modResources.length;
+                      const cluster = selectedClusterByModule[mod.id] ?? "mastery";
+                      const content = getClusterContentForModule(course.id, mod.id, cluster);
+                      const { baseContent, clusterAdditions } = content;
+                      const baseCount =
+                        baseContent.videos.length +
+                        baseContent.quizzes.length +
+                        baseContent.resources.length;
                       const lecturesCompleted = areModuleLecturesCompleted(mod.id);
+
+                      const setCluster = (c: ClusterName) => {
+                        setSelectedClusterByModule((prev) => ({ ...prev, [mod.id]: c }));
+                      };
+
+                      const hasClusterAdditions =
+                        clusterAdditions.resources.length > 0 ||
+                        clusterAdditions.retestQuiz ||
+                        clusterAdditions.messages.length > 0 ||
+                        clusterAdditions.optionalResources.length > 0;
 
                       return (
                         <AccordionItem key={mod.id} value={mod.id} className="border border-border/40 rounded-2xl px-4">
                           <AccordionTrigger className="text-sm font-medium hover:no-underline">
                             <div className="flex items-center gap-2 w-full">
                               <span>{mod.name}</span>
-                              <Badge variant="secondary" className="text-[10px] ml-auto mr-2 rounded-full">{itemCount} items</Badge>
+                              <Badge variant="secondary" className="text-[10px] ml-auto mr-2 rounded-full">{baseCount} base items</Badge>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            {itemCount === 0 ? (
-                              <p className="text-xs text-muted-foreground py-2">No content in this module yet.</p>
+                            {/* Cluster selector + preview label */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b border-border/40 mb-3">
+                              <span className="text-xs text-muted-foreground">Viewing module as:</span>
+                              <ClusterSelector value={cluster} onValueChange={setCluster} />
+                              <Badge variant="outline" className="text-[10px] w-fit rounded-full" style={{ borderColor: clusterColors[cluster] }}>
+                                {clusterMeta[cluster].label}
+                              </Badge>
+                            </div>
+
+                            {/* Base module content */}
+                            {baseCount === 0 ? (
+                              <p className="text-xs text-muted-foreground py-2">No base content in this module yet.</p>
                             ) : (
                               <ul className="space-y-1.5">
-                                {modVideos.map(vid => (
+                                {baseContent.videos.map(vid => (
                                   <li key={vid.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
                                     <div className="flex items-center gap-2">
                                       <Video className="h-3.5 w-3.5 text-primary" />
@@ -113,7 +144,7 @@ const CourseDetail = () => {
                                     </Link>
                                   </li>
                                 ))}
-                                {modQuizzes.map(quiz => {
+                                {baseContent.quizzes.map(quiz => {
                                   const isLocked = !lecturesCompleted;
                                   return (
                                     <li key={quiz.id} className={`flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 rounded-r-lg transition-colors ${
@@ -142,17 +173,81 @@ const CourseDetail = () => {
                                     </li>
                                   );
                                 })}
-                                {modResources.map(res => (
+                                {baseContent.resources.map(res => (
                                   <li key={res.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
-                                    <div className="flex items-center gap-2">
-                                      <File className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span>{res.title}</span>
-                                      <Badge variant="outline" className="text-[9px] rounded-full">{res.fileType.toUpperCase()}</Badge>
-                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setResourcePreview(res)}
+                                      className="flex items-center gap-2 text-left flex-1 min-w-0"
+                                    >
+                                      <File className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                      <span className="truncate">{res.title}</span>
+                                      <Badge variant="outline" className="text-[9px] rounded-full shrink-0">{res.fileType.toUpperCase()}</Badge>
+                                    </button>
                                   </li>
                                 ))}
                               </ul>
                             )}
+
+                            {/* Additional Support for this Cluster */}
+                            <div className="mt-4 pt-4 border-t border-border/40">
+                              <p className="text-xs font-medium text-muted-foreground mb-3">Additional Support for this Cluster</p>
+                              {!hasClusterAdditions ? (
+                                <p className="text-xs text-muted-foreground/80 py-2">No additional support resources assigned for this cluster yet.</p>
+                              ) : (
+                                <div className="space-y-3">
+                                  {clusterAdditions.resources.map(res => (
+                                    <div key={res.id} className="flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 border-primary/30 rounded-r-lg bg-accent/20">
+                                      <button
+                                        type="button"
+                                        onClick={() => setResourcePreview(res)}
+                                        className="flex items-center gap-2 text-left flex-1 min-w-0 hover:text-foreground"
+                                      >
+                                        <File className="h-3.5 w-3.5 text-primary shrink-0" />
+                                        <span className="truncate">{res.title}</span>
+                                        <Badge variant="outline" className="text-[9px] rounded-full shrink-0">{res.fileType.toUpperCase()}</Badge>
+                                        <span className="text-[9px] text-muted-foreground">Assigned</span>
+                                      </button>
+                                    </div>
+                                  ))}
+                                  {clusterAdditions.optionalResources.map(res => (
+                                    <div key={res.id} className="flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 border-primary/20 rounded-r-lg bg-accent/10">
+                                      <button
+                                        type="button"
+                                        onClick={() => setResourcePreview(res)}
+                                        className="flex items-center gap-2 text-left flex-1 min-w-0 hover:text-foreground"
+                                      >
+                                        <File className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                        <span className="truncate">{res.title}</span>
+                                        <Badge variant="outline" className="text-[9px] rounded-full shrink-0">Optional</Badge>
+                                      </button>
+                                    </div>
+                                  ))}
+                                  {clusterAdditions.retestQuiz ? (
+                                    <div className="flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 border-primary/30 rounded-r-lg bg-accent/20">
+                                      <div className="flex items-center gap-2">
+                                        <FileText className="h-3.5 w-3.5 text-primary" />
+                                        <span>{clusterAdditions.retestQuiz.title}</span>
+                                        <Badge variant="outline" className="text-[9px] rounded-full">Retest</Badge>
+                                      </div>
+                                      <Link to={`/learn/quiz/${clusterAdditions.retestQuiz.id}`}>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
+                                      </Link>
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4">
+                                      <p className="text-sm text-muted-foreground">No retest quiz has been assigned to this cluster for this module yet.</p>
+                                    </div>
+                                  )}
+                                  {clusterAdditions.messages.map(m => (
+                                    <div key={m.id} className="flex items-start gap-2 text-sm py-2 pl-3 border-l-2 border-primary/20 rounded-r-lg bg-accent/10">
+                                      <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                      <span className="text-muted-foreground">{m.text}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </AccordionContent>
                         </AccordionItem>
                       );
@@ -198,6 +293,12 @@ const CourseDetail = () => {
           </div>
         </div>
       </div>
+
+      <ResourcePreviewModal
+        resource={resourcePreview}
+        open={!!resourcePreview}
+        onOpenChange={(open) => !open && setResourcePreview(null)}
+      />
     </div>
   );
 };

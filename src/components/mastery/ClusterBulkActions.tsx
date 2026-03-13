@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageCircle, RotateCcw, BookOpen, Send, CheckSquare } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { MessageCircle, RotateCcw, BookOpen, Send, CheckSquare, FileText } from "lucide-react";
 import { clusterColors, clusterMeta, LearnerDataPoint, ClusterName } from "@/data/masteryData";
 import { contentStore } from "@/data/contentStore";
 import { sendMassMessage } from "@/data/chatStore";
@@ -26,12 +28,60 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
   const [actionType, setActionType] = useState<ActionType>(null);
   const [messageText, setMessageText] = useState("");
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
+  const [retestModuleId, setRetestModuleId] = useState("");
+  const [selectedRetestQuizId, setSelectedRetestQuizId] = useState("");
 
   const selectedLearners = learners.filter((l) => selectedClusters.includes(l.cluster));
   const uniqueNames = [...new Set(selectedLearners.map((l) => l.name))];
   const uniqueIds = [...new Set(selectedLearners.map((l) => l.id))];
 
   const availableResources = contentStore.getResourcesByCourse(courseId);
+  const courseModules = contentStore.getModulesByCourse(courseId);
+  const retestQuizzesForModule = retestModuleId
+    ? contentStore.getQuizzesByModule(courseId, retestModuleId).filter((q) => q.isRetest)
+    : [];
+  const hasRetestsForModule = retestQuizzesForModule.length > 0;
+
+  const openRetestFlow = () => {
+    if (selectedClusters.length === 0) {
+      toast.error("Select at least one cluster first");
+      return;
+    }
+    setRetestModuleId("");
+    setSelectedRetestQuizId("");
+    setActionType("retest");
+  };
+
+  const assignRetestToClusters = () => {
+    if (!selectedRetestQuizId || uniqueIds.length === 0) return;
+    contentStore.addIntervention({
+      id: `int-retest-${Date.now()}`,
+      type: "retest",
+      targetLearnerIds: uniqueIds,
+      contentId: selectedRetestQuizId,
+      courseId,
+      createdAt: new Date().toISOString(),
+    });
+    const clusterNames = selectedClusters.map((c) => clusterMeta[c as ClusterName]?.label).join(", ");
+    toast.success(`Retest assigned to ${uniqueNames.length} learners in: ${clusterNames}`);
+    setActionType(null);
+    setRetestModuleId("");
+    setSelectedRetestQuizId("");
+  };
+
+  const navigateToCreateRetest = () => {
+    sessionStorage.setItem("retestLearnerIds", JSON.stringify(uniqueIds));
+    sessionStorage.setItem("retestCourseId", courseId);
+    if (retestModuleId) {
+      sessionStorage.setItem("retestModuleId", retestModuleId);
+      const mod = courseModules.find((m) => m.id === retestModuleId);
+      if (mod) sessionStorage.setItem("retestModuleTitle", mod.name);
+    }
+    setActionType(null);
+    setRetestModuleId("");
+    setSelectedRetestQuizId("");
+    navigate("/admin/content?action=retest");
+  };
 
   const handleAction = () => {
     const clusterNames = selectedClusters.map((c) => clusterMeta[c as ClusterName]?.label).join(", ");
@@ -55,13 +105,6 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
         toast.error(err?.message || "Failed to send message");
         return;
       }
-    } else if (actionType === "retest") {
-      toast.success(`Navigating to Content page to create a retest for ${uniqueNames.length} learners`);
-      sessionStorage.setItem("retestLearnerIds", JSON.stringify(uniqueIds));
-      sessionStorage.setItem("retestCourseId", courseId);
-      navigate("/admin/content?action=retest");
-      setActionType(null);
-      return;
     } else if (actionType === "resources") {
       if (selectedResourceIds.length === 0) { toast.error("Select at least one resource"); return; }
       for (const resourceId of selectedResourceIds) {
@@ -126,11 +169,11 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
               <p className="text-[10px] text-muted-foreground">Message all {uniqueNames.length} learners</p>
             </div>
           </Button>
-          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl hover:shadow-glow transition-all" onClick={() => setActionType("retest")}>
+          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl hover:shadow-glow transition-all" onClick={openRetestFlow}>
             <RotateCcw className="h-4 w-4 text-primary" />
             <div className="text-left">
               <p className="text-xs font-medium">Create Retest</p>
-              <p className="text-[10px] text-muted-foreground">New test & send link</p>
+              <p className="text-[10px] text-muted-foreground">Create or assign a retest for selected clusters</p>
             </div>
           </Button>
           <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl hover:shadow-glow transition-all" onClick={() => setActionType("resources")}>
@@ -159,7 +202,88 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
         </div>
       )}
 
-      {/* Action dialog */}
+      {/* Retest flow dialog */}
+      <Dialog open={actionType === "retest"} onOpenChange={(open) => !open && (setActionType(null), setRetestModuleId(""), setSelectedRetestQuizId(""))}>
+        <DialogContent className="rounded-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create or Assign Retest</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">Create or assign a retest quiz for the selected clusters.</p>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-1.5">
+              {selectedClusters.map((c) => (
+                <Badge key={c} variant="secondary" className="text-xs rounded-full">
+                  {clusterMeta[c as ClusterName]?.label} ({learners.filter((l) => l.cluster === c).length})
+                </Badge>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Applies to <strong className="text-foreground">{uniqueNames.length}</strong> learners
+            </p>
+            <div className="space-y-2">
+              <Label className="text-sm">Target module</Label>
+              <Select value={retestModuleId} onValueChange={(v) => { setRetestModuleId(v); setSelectedRetestQuizId(""); }}>
+                <SelectTrigger className="rounded-full">
+                  <SelectValue placeholder="Select module" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courseModules.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {retestModuleId && (
+              <>
+                {hasRetestsForModule ? (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Existing retest quiz</Label>
+                    <ScrollArea className="max-h-40">
+                      <div className="space-y-1.5">
+                        {retestQuizzesForModule.map((q) => (
+                          <label key={q.id} className="flex items-center gap-3 rounded-xl border border-border/40 p-3 cursor-pointer hover:bg-accent/30 transition-colors">
+                            <Checkbox
+                              checked={selectedRetestQuizId === q.id}
+                              onCheckedChange={() => setSelectedRetestQuizId(selectedRetestQuizId === q.id ? "" : q.id)}
+                            />
+                            <div className="flex items-center gap-2 flex-1">
+                              <FileText className="h-4 w-4 text-primary shrink-0" />
+                              <span className="text-sm font-medium">{q.title}</span>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    <p className="text-xs text-muted-foreground">Select one to assign to the selected clusters.</p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 text-center">
+                    <p className="text-sm text-muted-foreground">No retest quiz exists for this module yet.</p>
+                    <Button variant="outline" size="sm" className="mt-3 rounded-full" onClick={navigateToCreateRetest}>
+                      Create new retest quiz
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">You&apos;ll create the quiz on the Content page, then return here to assign it.</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setActionType(null); setRetestModuleId(""); setSelectedRetestQuizId(""); }} className="rounded-full">Cancel</Button>
+            {hasRetestsForModule ? (
+              <Button onClick={assignRetestToClusters} disabled={!selectedRetestQuizId} className="rounded-full">
+                Assign Retest
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={navigateToCreateRetest} className="rounded-full">
+                Go to Content to create retest
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Message / Resources dialog */}
       <Dialog open={actionType !== null && actionType !== "retest"} onOpenChange={() => setActionType(null)}>
         <DialogContent className="rounded-3xl">
           <DialogHeader>

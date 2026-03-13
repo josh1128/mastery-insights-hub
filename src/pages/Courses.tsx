@@ -22,7 +22,7 @@ const CoursesPage = () => {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-10 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Courses</h1>
         <p className="text-muted-foreground text-sm mt-1">Browse available courses</p>
@@ -31,14 +31,15 @@ const CoursesPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {courseCards.map((course) => (
           <Link to={`/courses/${course.id}`} key={course.id}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <div className="h-36 bg-gradient-to-br from-primary/80 to-primary rounded-t-lg flex items-end p-5">
-                <h3 className="text-primary-foreground font-semibold leading-tight">{course.name}</h3>
+            <Card className="hover:shadow-elevated transition-all duration-300 cursor-pointer h-full group">
+              <div className="h-40 bg-gradient-to-br from-primary via-primary-glow to-primary rounded-t-2xl flex items-end p-6 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                <h3 className="text-primary-foreground font-bold leading-tight relative z-10 text-lg">{course.name}</h3>
               </div>
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">{course.category}</Badge>
-                  <Badge variant="default" className="text-xs">{course.status}</Badge>
+                  <Badge variant="secondary" className="text-xs rounded-lg">{course.category}</Badge>
+                  <Badge className="text-xs rounded-lg">{course.status}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Users className="h-3 w-3" />{course.enrolled} learners</span>

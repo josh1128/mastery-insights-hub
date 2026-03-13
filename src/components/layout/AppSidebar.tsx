@@ -1,6 +1,6 @@
 import {
   Home, BookOpen, MessageCircle,
-  LayoutDashboard, Users, FileText,
+  Users, FileText,
   Zap, TrendingUp, Brain, Award
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -18,7 +18,6 @@ const mainItems = [
 ];
 
 const adminItems = [
-  { title: "Dashboard", url: "/admin/dashboard", icon: LayoutDashboard },
   { title: "Members", url: "/admin/members", icon: Users },
   { title: "Content", url: "/admin/content", icon: FileText },
   { title: "Automations", url: "/admin/automations", icon: Zap },

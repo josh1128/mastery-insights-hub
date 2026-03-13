@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ interface Message {
 
 interface Conversation {
   id: string;
+  memberId: string;
   studentName: string;
   studentInitials: string;
   lastMessage: string;
@@ -38,25 +40,27 @@ const sampleMessages = [
   "The resources you sent were very helpful.",
 ];
 
-// Build conversations from shared members
-const initialConversations: Conversation[] = members.slice(0, 10).map((m, i) => ({
-  id: `c-${m.id}`,
-  studentName: m.name,
-  studentInitials: m.initials,
-  lastMessage: sampleMessages[i % sampleMessages.length],
-  lastTimestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
-  unread: i < 2 ? i + 1 : 0,
-  online: i < 3,
-  messages: [
-    {
-      id: `m-${m.id}-1`,
-      senderId: "student",
-      text: sampleMessages[i % sampleMessages.length],
-      timestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
-      isInstructor: false,
-    },
-  ],
-}));
+function buildConversations(): Conversation[] {
+  return members.slice(0, 20).map((m, i) => ({
+    id: `c-${m.id}`,
+    memberId: m.id,
+    studentName: m.name,
+    studentInitials: m.initials,
+    lastMessage: sampleMessages[i % sampleMessages.length],
+    lastTimestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
+    unread: i < 2 ? i + 1 : 0,
+    online: i < 3,
+    messages: [
+      {
+        id: `m-${m.id}-1`,
+        senderId: "student",
+        text: sampleMessages[i % sampleMessages.length],
+        timestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
+        isInstructor: false,
+      },
+    ],
+  }));
+}
 
 const formatTime = (date: Date) => {
   const diff = Date.now() - date.getTime();
@@ -66,11 +70,43 @@ const formatTime = (date: Date) => {
 };
 
 const ChatPage = () => {
-  const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-  const [selectedId, setSelectedId] = useState<string>(initialConversations[0].id);
+  const [searchParams] = useSearchParams();
+  const targetMemberId = searchParams.get("member");
+
+  const [conversations, setConversations] = useState<Conversation[]>(() => {
+    const convs = buildConversations();
+    // If targeting a member not in default list, add them
+    if (targetMemberId && !convs.find(c => c.memberId === targetMemberId)) {
+      const member = members.find(m => m.id === targetMemberId);
+      if (member) {
+        convs.unshift({
+          id: `c-${member.id}`,
+          memberId: member.id,
+          studentName: member.name,
+          studentInitials: member.initials,
+          lastMessage: "No messages yet",
+          lastTimestamp: new Date(),
+          unread: 0,
+          online: false,
+          messages: [],
+        });
+      }
+    }
+    return convs;
+  });
+
+  const [selectedId, setSelectedId] = useState<string>(() => {
+    if (targetMemberId) {
+      const conv = conversations.find(c => c.memberId === targetMemberId);
+      if (conv) return conv.id;
+    }
+    return conversations[0]?.id || "";
+  });
+
   const [messageText, setMessageText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const selected = conversations.find(c => c.id === selectedId);
   const filteredConversations = conversations.filter(c =>
@@ -80,6 +116,13 @@ const ChatPage = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selected?.messages.length]);
+
+  // Auto-focus input when navigating from Members page
+  useEffect(() => {
+    if (targetMemberId) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [targetMemberId]);
 
   const sendMessage = () => {
     if (!messageText.trim() || !selectedId) return;
@@ -119,6 +162,51 @@ const ChatPage = () => {
       ));
     }, 2000);
   };
+
+  // Public method to send mass messages (used by interventions)
+  const sendMassMessage = (memberIds: string[], text: string) => {
+    setConversations(prev => {
+      let updated = [...prev];
+      for (const memberId of memberIds) {
+        let conv = updated.find(c => c.memberId === memberId);
+        if (!conv) {
+          const member = members.find(m => m.id === memberId);
+          if (!member) continue;
+          conv = {
+            id: `c-${member.id}`,
+            memberId: member.id,
+            studentName: member.name,
+            studentInitials: member.initials,
+            lastMessage: "",
+            lastTimestamp: new Date(),
+            unread: 0,
+            online: false,
+            messages: [],
+          };
+          updated.push(conv);
+        }
+        const msg: Message = {
+          id: `m${Date.now()}-${memberId}`,
+          senderId: "instructor",
+          text,
+          timestamp: new Date(),
+          isInstructor: true,
+        };
+        updated = updated.map(c =>
+          c.memberId === memberId
+            ? { ...c, messages: [...c.messages, msg], lastMessage: msg.text, lastTimestamp: msg.timestamp }
+            : c
+        );
+      }
+      return updated;
+    });
+  };
+
+  // Expose sendMassMessage globally for other components
+  useEffect(() => {
+    (window as any).__chatSendMassMessage = sendMassMessage;
+    return () => { delete (window as any).__chatSendMassMessage; };
+  });
 
   return (
     <div className="animate-fade-in h-[calc(100vh-8rem)]">
@@ -200,7 +288,7 @@ const ChatPage = () => {
 
             <div className="p-3 border-t">
               <div className="flex gap-2">
-                <Input placeholder="Type a message..." className="flex-1"
+                <Input ref={inputRef} placeholder="Type a message..." className="flex-1"
                   value={messageText} onChange={e => setMessageText(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") sendMessage(); }} />
                 <Button onClick={sendMessage} size="icon"><Send className="h-4 w-4" /></Button>

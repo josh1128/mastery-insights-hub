@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Trash2, GripVertical } from "lucide-react";
@@ -15,6 +16,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editQuiz?: Quiz;
+  isRetest?: boolean;
 }
 
 function newQuestion(type: QuestionType): QuizQuestion {
@@ -31,33 +33,27 @@ function newQuestion(type: QuestionType): QuizQuestion {
   };
 }
 
-export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
+export function QuizAuthoringDialog({ open, onOpenChange, editQuiz, isRetest }: Props) {
   const [title, setTitle] = useState("");
   const [courseId, setCourseId] = useState("");
   const [moduleId, setModuleId] = useState("");
   const [captureConfidence, setCaptureConfidence] = useState(true);
   const [questions, setQuestions] = useState<QuizQuestion[]>([newQuestion("true-false")]);
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      setTitle(editQuiz?.title || "");
-      setCourseId(editQuiz?.courseId || "");
+      setTitle(editQuiz?.title || (isRetest ? "Retest — " : ""));
+      setCourseId(editQuiz?.courseId || sessionStorage.getItem("retestCourseId") || "");
       setModuleId(editQuiz?.moduleId || "");
       setCaptureConfidence(editQuiz?.captureConfidence ?? true);
       setQuestions(editQuiz?.questions || [newQuestion("true-false")]);
     }
-  }, [open, editQuiz]);
+  }, [open, editQuiz, isRetest]);
 
   const courseModules = courseId ? contentStore.getModulesByCourse(courseId) : [];
 
-  const addQuestion = (type: QuestionType) => {
-    setQuestions(prev => [...prev, newQuestion(type)]);
-  };
-
-  const removeQuestion = (qId: string) => {
-    setQuestions(prev => prev.filter(q => q.id !== qId));
-  };
+  const addQuestion = (type: QuestionType) => setQuestions(prev => [...prev, newQuestion(type)]);
+  const removeQuestion = (qId: string) => setQuestions(prev => prev.filter(q => q.id !== qId));
 
   const updateQuestion = (qId: string, updates: Partial<QuizQuestion>) => {
     setQuestions(prev => prev.map(q => q.id === qId ? { ...q, ...updates } : q));
@@ -66,8 +62,7 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
   const addOption = (qId: string) => {
     setQuestions(prev => prev.map(q => {
       if (q.id !== qId) return q;
-      const opts = q.options || [];
-      return { ...q, options: [...opts, { id: `o-${Date.now()}`, text: "" }] };
+      return { ...q, options: [...(q.options || []), { id: `o-${Date.now()}`, text: "" }] };
     }));
   };
 
@@ -98,6 +93,7 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
       captureConfidence,
       questions,
       createdAt: editQuiz?.createdAt || new Date().toISOString(),
+      isRetest: isRetest || editQuiz?.isRetest || false,
     };
 
     if (editQuiz) {
@@ -105,7 +101,25 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
       toast.success("Quiz updated");
     } else {
       contentStore.addQuiz(quiz);
-      toast.success("Quiz created");
+      toast.success(isRetest ? "Retest quiz created" : "Quiz created");
+
+      // If retest, create intervention
+      if (isRetest) {
+        const learnerIds = JSON.parse(sessionStorage.getItem("retestLearnerIds") || "[]");
+        if (learnerIds.length > 0) {
+          contentStore.addIntervention({
+            id: `int-${Date.now()}`,
+            type: "retest",
+            targetLearnerIds: learnerIds,
+            contentId: quiz.id,
+            courseId,
+            createdAt: new Date().toISOString(),
+          });
+          toast.success(`Retest assigned to ${learnerIds.length} learners`);
+          sessionStorage.removeItem("retestLearnerIds");
+          sessionStorage.removeItem("retestCourseId");
+        }
+      }
     }
     onOpenChange(false);
   };
@@ -114,7 +128,14 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editQuiz ? "Edit Quiz" : "Create Quiz"}</DialogTitle>
+          <DialogTitle>
+            {editQuiz ? "Edit Quiz" : isRetest ? "Create Retest Quiz" : "Create Quiz"}
+          </DialogTitle>
+          {isRetest && (
+            <Badge className="w-fit bg-primary/10 text-primary border-primary/20 mt-1">
+              This quiz will be tagged as a Retest
+            </Badge>
+          )}
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -179,11 +200,7 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
                   </Button>
                 </div>
 
-                <Input
-                  value={q.text}
-                  onChange={e => updateQuestion(q.id, { text: e.target.value })}
-                  placeholder="Enter question text..."
-                />
+                <Input value={q.text} onChange={e => updateQuestion(q.id, { text: e.target.value })} placeholder="Enter question text..." />
 
                 {q.type === "true-false" && (
                   <div className="space-y-2">
@@ -209,12 +226,7 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
                         <RadioGroup value={q.correctAnswer} onValueChange={v => updateQuestion(q.id, { correctAnswer: v })}>
                           <RadioGroupItem value={o.id} />
                         </RadioGroup>
-                        <Input
-                          value={o.text}
-                          onChange={e => updateOption(q.id, o.id, e.target.value)}
-                          placeholder="Option text..."
-                          className="flex-1 h-8 text-sm"
-                        />
+                        <Input value={o.text} onChange={e => updateOption(q.id, o.id, e.target.value)} placeholder="Option text..." className="flex-1 h-8 text-sm" />
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeOption(q.id, o.id)}>
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -232,7 +244,7 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>{editQuiz ? "Save Changes" : "Create Quiz"}</Button>
+          <Button onClick={handleSave}>{editQuiz ? "Save Changes" : isRetest ? "Create Retest" : "Create Quiz"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

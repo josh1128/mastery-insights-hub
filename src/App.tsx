@@ -13,9 +13,7 @@ import MasteryPage from "./pages/insights/Mastery";
 import CertificateBuilder from "./pages/CertificateBuilder";
 import ChatPage from "./pages/ChatPage";
 import MembersPage from "./pages/admin/Members";
-import {
-  AdminDashboard, AutomationsPage,
-} from "./pages/PlaceholderPages";
+import { AutomationsPage } from "./pages/PlaceholderPages";
 import ContentPage from "./pages/ContentPage";
 import LearnerQuiz from "./pages/LearnerQuiz";
 import LearnerLecture from "./pages/LearnerLecture";
@@ -34,7 +32,6 @@ const App = () => (
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/courses/:id" element={<CourseDetail />} />
             <Route path="/chat" element={<ChatPage />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/members" element={<MembersPage />} />
             <Route path="/admin/content" element={<ContentPage />} />
             <Route path="/admin/automations" element={<AutomationsPage />} />

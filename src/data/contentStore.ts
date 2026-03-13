@@ -230,6 +230,23 @@ class ContentStore {
       this.videoLectures.filter(v => v.courseId === courseId).length +
       this.resources.filter(r => r.courseId === courseId && !r.isOptional).length;
   }
+
+  // Teach-back scores
+  getTeachBackScores(): TeachBackScore[] { return this.teachBackScores; }
+  getTeachBackScore(learnerId: string, quizId: string): TeachBackScore | undefined {
+    return this.teachBackScores.find(t => t.learnerId === learnerId && t.quizId === quizId);
+  }
+  getTeachBackScoresByModule(courseId: string, moduleId: string): TeachBackScore[] {
+    return this.teachBackScores.filter(t => t.courseId === courseId && t.moduleId === moduleId);
+  }
+  addTeachBackScore(score: TeachBackScore) {
+    // Replace existing score for same learner+quiz
+    this.teachBackScores = this.teachBackScores.filter(
+      t => !(t.learnerId === score.learnerId && t.quizId === score.quizId)
+    );
+    this.teachBackScores.push(score);
+    this.notify();
+  }
 }
 
 export const contentStore = new ContentStore();

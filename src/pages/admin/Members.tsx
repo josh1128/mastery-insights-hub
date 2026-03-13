@@ -1,17 +1,20 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Users } from "lucide-react";
+import { Search, Users, MessageCircle } from "lucide-react";
 import { members } from "@/data/members";
 import { courses } from "@/data/courses";
 
 const MembersPage = () => {
   const [search, setSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState("all");
+  const navigate = useNavigate();
 
   const filtered = useMemo(() => {
     return members.filter(m => {
@@ -22,6 +25,10 @@ const MembersPage = () => {
     });
   }, [search, courseFilter]);
 
+  const handleMessage = (memberId: string) => {
+    navigate(`/chat?member=${memberId}`);
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
@@ -29,35 +36,21 @@ const MembersPage = () => {
         <p className="text-muted-foreground text-sm mt-1">{members.length} learners across the platform</p>
       </div>
 
-      {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or email…"
-            className="pl-9"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+          <Input placeholder="Search by name or email…" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={courseFilter} onValueChange={setCourseFilter}>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Filter by course" />
-          </SelectTrigger>
+          <SelectTrigger className="w-[240px]"><SelectValue placeholder="Filter by course" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Courses</SelectItem>
-            {courses.map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
+            {courses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Badge variant="secondary" className="text-xs">
-          <Users className="h-3 w-3 mr-1" />
-          {filtered.length} results
-        </Badge>
+        <Badge variant="secondary" className="text-xs"><Users className="h-3 w-3 mr-1" />{filtered.length} results</Badge>
       </div>
 
-      {/* Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -68,6 +61,7 @@ const MembersPage = () => {
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead>Enrolled Courses</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -82,19 +76,21 @@ const MembersPage = () => {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{m.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs capitalize">{m.role}</Badge>
-                  </TableCell>
+                  <TableCell><Badge variant="outline" className="text-xs capitalize">{m.role}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{m.joinDate}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 flex-wrap">
                       {m.enrolledCourseIds.map(cid => {
                         const c = courses.find(x => x.id === cid);
-                        return c ? (
-                          <Badge key={cid} variant="secondary" className="text-[10px]">{c.name.split("—")[0].trim().slice(0, 20)}</Badge>
-                        ) : null;
+                        return c ? <Badge key={cid} variant="secondary" className="text-[10px]">{c.name.split("—")[0].trim().slice(0, 20)}</Badge> : null;
                       })}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-primary" onClick={() => handleMessage(m.id)}>
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      Message
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

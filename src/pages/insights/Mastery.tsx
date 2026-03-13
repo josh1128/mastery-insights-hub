@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, BarChart, Bar } from "recharts";
 import {
   ThresholdConfig, defaultThresholds, clusterColors, clusterMeta,
-  ClusterName, LearnerDataPoint, getLearnerDataForModule, classifyStudent,
+  ClusterName, getLearnerDataForModule, classifyStudent,
 } from "@/data/masteryData";
 import { courses } from "@/data/courses";
 import { members, getMemberModuleData } from "@/data/members";
@@ -20,7 +20,19 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="font-semibold text-foreground">{d.name}</p>
         <p className="text-muted-foreground">Score: {Math.round(d.score)}%</p>
         <p className="text-muted-foreground">Confidence: {Math.round(d.confidence)}%</p>
-        <Badge variant="secondary" className="mt-1 capitalize text-[10px]">{d.cluster}</Badge>
+        <Badge variant="secondary" className="mt-1 text-[10px]">{clusterMeta[d.cluster as ClusterName]?.label}</Badge>
+      </div>
+    );
+  }
+  return null;
+};
+
+const MasteryBarTooltip = ({ active, payload, label }: any) => {
+  if (active && payload?.length) {
+    return (
+      <div className="bg-card border rounded-lg p-3 shadow-lg text-xs">
+        <p className="font-semibold text-foreground">{label}</p>
+        <p className="text-muted-foreground">Mastery Rate: {payload[0].value}%</p>
       </div>
     );
   }
@@ -40,14 +52,12 @@ const MasteryPage = () => {
     [selectedCourse, selectedModule, thresholds]
   );
 
-  // Cluster counts
   const clusterCounts = useMemo(() => {
     const counts: Record<ClusterName, number> = { mastery: 0, guessing: 0, misconception: 0, struggling: 0, developing: 0 };
     classifiedData.forEach(d => counts[d.cluster]++);
     return counts;
   }, [classifiedData]);
 
-  // Mastery rate per module
   const masteryDistribution = useMemo(() => {
     return course.modules.map(mod => {
       const enrolled = members.filter(m => m.enrolledCourseIds.includes(selectedCourse));
@@ -65,9 +75,17 @@ const MasteryPage = () => {
     );
   };
 
+  // Clearly labeled cluster descriptions
+  const clusterDescriptions: Record<ClusterName, string> = {
+    mastery: "High Confidence + High Score",
+    guessing: "High Score + Low Confidence",
+    misconception: "Low Score + High Confidence",
+    struggling: "Low Score + Low Confidence",
+    developing: "Near Threshold (Transition Zone)",
+  };
+
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Page header */}
       <div className="flex flex-col gap-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mastery Insights</h1>
@@ -75,31 +93,23 @@ const MasteryPage = () => {
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Select value={selectedCourse} onValueChange={(v) => { setSelectedCourse(v); setSelectedModule("all"); }}>
-            <SelectTrigger className="w-[280px]">
-              <SelectValue placeholder="Select course" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[280px]"><SelectValue placeholder="Select course" /></SelectTrigger>
             <SelectContent>
-              {courses.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
+              {courses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={selectedModule} onValueChange={setSelectedModule}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select module" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select module" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Modules</SelectItem>
-              {course.modules.map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-              ))}
+              {course.modules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <ThresholdSettings thresholds={thresholds} onSave={setThresholds} />
         </div>
       </div>
 
-      {/* Cluster summary cards */}
+      {/* Cluster summary cards with clear labels */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {(Object.entries(clusterMeta) as [ClusterName, typeof clusterMeta[ClusterName]][]).map(([key, info]) => {
           const count = clusterCounts[key];
@@ -107,10 +117,11 @@ const MasteryPage = () => {
           return (
             <Card key={key} className="relative overflow-hidden">
               <CardContent className="p-5">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="h-3 w-3 rounded-full" style={{ backgroundColor: clusterColors[key] }} />
                   <span className="text-xs font-medium text-muted-foreground">{info.label}</span>
                 </div>
+                <p className="text-[10px] text-muted-foreground mb-2">{clusterDescriptions[key]}</p>
                 <p className="text-2xl font-bold text-foreground">{count}</p>
                 <p className="text-xs text-muted-foreground mt-1">{pct}% of learners</p>
               </CardContent>
@@ -126,6 +137,7 @@ const MasteryPage = () => {
             learners={classifiedData}
             selectedClusters={selectedClusters}
             onToggleCluster={toggleCluster}
+            courseId={selectedCourse}
           />
         </CardContent>
       </Card>
@@ -139,7 +151,7 @@ const MasteryPage = () => {
           </div>
           <div className="flex gap-3 text-[11px] flex-wrap">
             {(Object.entries(clusterColors) as [ClusterName, string][]).map(([k, v]) => (
-              <span key={k} className="flex items-center gap-1.5 capitalize text-muted-foreground">
+              <span key={k} className="flex items-center gap-1.5 text-muted-foreground">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: v }} />
                 {clusterMeta[k].label}
               </span>
@@ -169,21 +181,17 @@ const MasteryPage = () => {
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Mastery distribution */}
+        {/* Mastery distribution - purple color, percentages */}
         <Card>
-          <CardHeader><CardTitle className="text-base">Mastery Rate by Module</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Mastery Rate by Module (%)</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={masteryDistribution} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} unit="%" />
                 <YAxis type="category" dataKey="module" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} width={120} />
-                <Tooltip />
-                <Bar dataKey="mastery" radius={[0, 4, 4, 0]}>
-                  {masteryDistribution.map((entry, i) => (
-                    <Cell key={i} fill={entry.mastery >= 60 ? "hsl(var(--chart-success))" : entry.mastery >= 40 ? "hsl(var(--chart-warning))" : "hsl(var(--chart-danger))"} />
-                  ))}
-                </Bar>
+                <Tooltip content={<MasteryBarTooltip />} />
+                <Bar dataKey="mastery" radius={[0, 4, 4, 0]} fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -221,7 +229,7 @@ const MasteryPage = () => {
               })}
               <div className="flex gap-3 text-[10px] text-muted-foreground pt-2 flex-wrap">
                 {(Object.entries(clusterColors) as [ClusterName, string][]).map(([k, v]) => (
-                  <span key={k} className="flex items-center gap-1 capitalize">
+                  <span key={k} className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: v }} />{clusterMeta[k].label}
                   </span>
                 ))}

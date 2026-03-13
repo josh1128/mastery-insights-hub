@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, BookOpen, Award, Play, Video, FileText } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, Users, BookOpen, Award, Play, Video, FileText, File, Lock } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getCourse } from "@/data/courses";
 import { members } from "@/data/members";
@@ -32,6 +33,13 @@ const CourseDetail = () => {
   const enrolled = members.filter(m => m.enrolledCourseIds.includes(course.id)).length;
   const courseModules = contentStore.getModulesByCourse(course.id);
   const totalContent = contentStore.getCourseContentCount(course.id);
+
+  // Check if a module's lectures are all completed (for quiz locking)
+  const areModuleLecturesCompleted = (moduleId: string): boolean => {
+    const lectures = contentStore.getVideoLecturesByModule(course.id, moduleId);
+    if (lectures.length === 0) return true; // No lectures = unlocked
+    return lectures.every(l => contentStore.isLectureCompleted("demo-learner", l.id));
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -70,9 +78,11 @@ const CourseDetail = () => {
               ) : (
                 <Accordion type="multiple" className="space-y-2">
                   {courseModules.map(mod => {
-                    const modQuizzes = contentStore.getQuizzesByModule(course.id, mod.id);
+                    const modQuizzes = contentStore.getQuizzesByModule(course.id, mod.id).filter(q => !q.isRetest);
                     const modVideos = contentStore.getVideoLecturesByModule(course.id, mod.id);
-                    const itemCount = modQuizzes.length + modVideos.length;
+                    const modResources = contentStore.getResourcesByModule(course.id, mod.id).filter(r => !r.isOptional);
+                    const itemCount = modQuizzes.length + modVideos.length + modResources.length;
+                    const lecturesCompleted = areModuleLecturesCompleted(mod.id);
 
                     return (
                       <AccordionItem key={mod.id} value={mod.id} className="border rounded-lg px-4">
@@ -87,20 +97,6 @@ const CourseDetail = () => {
                             <p className="text-xs text-muted-foreground py-2">No content in this module yet.</p>
                           ) : (
                             <ul className="space-y-1.5">
-                              {modQuizzes.map(quiz => (
-                                <li key={quiz.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-2 pr-1 border-l-2 border-border hover:border-primary hover:text-foreground transition-colors rounded-r">
-                                  <div className="flex items-center gap-2">
-                                    <FileText className="h-3.5 w-3.5 text-amber-500" />
-                                    <span>{quiz.title}</span>
-                                    <Badge variant="outline" className="text-[9px]">Quiz</Badge>
-                                  </div>
-                                  <Link to={`/learn/quiz/${quiz.id}`}>
-                                    <Button size="icon" variant="ghost" className="h-7 w-7">
-                                      <Play className="h-3 w-3" />
-                                    </Button>
-                                  </Link>
-                                </li>
-                              ))}
                               {modVideos.map(vid => (
                                 <li key={vid.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-2 pr-1 border-l-2 border-border hover:border-primary hover:text-foreground transition-colors rounded-r">
                                   <div className="flex items-center gap-2">
@@ -109,10 +105,46 @@ const CourseDetail = () => {
                                     <Badge variant="outline" className="text-[9px]">Video</Badge>
                                   </div>
                                   <Link to={`/learn/lecture/${vid.id}`}>
-                                    <Button size="icon" variant="ghost" className="h-7 w-7">
-                                      <Play className="h-3 w-3" />
-                                    </Button>
+                                    <Button size="icon" variant="ghost" className="h-7 w-7"><Play className="h-3 w-3" /></Button>
                                   </Link>
+                                </li>
+                              ))}
+                              {modQuizzes.map(quiz => {
+                                const isLocked = !lecturesCompleted;
+                                return (
+                                  <li key={quiz.id} className={`flex items-center justify-between text-sm py-2 pl-2 pr-1 border-l-2 rounded-r transition-colors ${
+                                    isLocked ? "text-muted-foreground/50 border-border" : "text-muted-foreground border-border hover:border-primary hover:text-foreground"
+                                  }`}>
+                                    <div className="flex items-center gap-2">
+                                      {isLocked ? <Lock className="h-3.5 w-3.5 text-muted-foreground/50" /> : <FileText className="h-3.5 w-3.5 text-amber-500" />}
+                                      <span>{quiz.title}</span>
+                                      <Badge variant="outline" className="text-[9px]">Quiz</Badge>
+                                      {isLocked && <span className="text-[9px] text-muted-foreground/50">Complete lectures first</span>}
+                                    </div>
+                                    {isLocked ? (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button size="icon" variant="ghost" className="h-7 w-7 opacity-30 cursor-not-allowed" disabled>
+                                            <Lock className="h-3 w-3" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Complete all lectures in this module first</TooltipContent>
+                                      </Tooltip>
+                                    ) : (
+                                      <Link to={`/learn/quiz/${quiz.id}`}>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7"><Play className="h-3 w-3" /></Button>
+                                      </Link>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                              {modResources.map(res => (
+                                <li key={res.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-2 pr-1 border-l-2 border-border hover:border-primary hover:text-foreground transition-colors rounded-r">
+                                  <div className="flex items-center gap-2">
+                                    <File className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <span>{res.title}</span>
+                                    <Badge variant="outline" className="text-[9px]">{res.fileType.toUpperCase()}</Badge>
+                                  </div>
                                 </li>
                               ))}
                             </ul>

@@ -1,4 +1,4 @@
-// Central content store for modules, quizzes, and video lectures
+// Central content store for modules, quizzes, video lectures, resources, and interventions
 // Single source of truth for all course content
 
 import { courses as courseDefs } from "@/data/courses";
@@ -21,6 +21,7 @@ export interface Quiz {
   captureConfidence: boolean;
   questions: QuizQuestion[];
   createdAt: string;
+  isRetest?: boolean;
 }
 
 export interface ConfidenceCheckpoint {
@@ -47,9 +48,41 @@ export interface CourseModule {
   createdAt: string;
 }
 
+export interface Resource {
+  id: string;
+  title: string;
+  courseId: string;
+  moduleId: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string; // pdf, docx, etc.
+  isOptional: boolean;
+  createdAt: string;
+}
+
+export type InterventionType = "retest" | "resource" | "extra-quiz" | "message";
+
+export interface Intervention {
+  id: string;
+  type: InterventionType;
+  targetLearnerIds: string[];
+  contentId?: string; // quiz id, resource id, etc.
+  message?: string;
+  courseId: string;
+  createdAt: string;
+}
+
+// Track which learners have completed which lectures
+export interface LectureCompletion {
+  learnerId: string;
+  lectureId: string;
+  completedAt: string;
+}
+
 export type ContentItem =
   | { type: "quiz"; data: Quiz }
-  | { type: "video"; data: VideoLecture };
+  | { type: "video"; data: VideoLecture }
+  | { type: "resource"; data: Resource };
 
 type Listener = () => void;
 
@@ -57,13 +90,15 @@ class ContentStore {
   private modules: CourseModule[] = [];
   private quizzes: Quiz[] = [];
   private videoLectures: VideoLecture[] = [];
+  private resources: Resource[] = [];
+  private interventions: Intervention[] = [];
+  private lectureCompletions: LectureCompletion[] = [];
   private listeners: Set<Listener> = new Set();
   private initialized = false;
 
   private ensureInit() {
     if (this.initialized) return;
     this.initialized = true;
-    // Seed modules from course definitions
     for (const course of courseDefs) {
       for (const mod of course.modules) {
         this.modules.push({
@@ -86,26 +121,11 @@ class ContentStore {
   }
 
   // Modules
-  getModules(): CourseModule[] {
-    this.ensureInit();
-    return this.modules;
-  }
+  getModules(): CourseModule[] { this.ensureInit(); return this.modules; }
+  getModulesByCourse(courseId: string): CourseModule[] { this.ensureInit(); return this.modules.filter(m => m.courseId === courseId); }
+  getModule(id: string): CourseModule | undefined { this.ensureInit(); return this.modules.find(m => m.id === id); }
 
-  getModulesByCourse(courseId: string): CourseModule[] {
-    this.ensureInit();
-    return this.modules.filter(m => m.courseId === courseId);
-  }
-
-  getModule(id: string): CourseModule | undefined {
-    this.ensureInit();
-    return this.modules.find(m => m.id === id);
-  }
-
-  addModule(mod: CourseModule) {
-    this.ensureInit();
-    this.modules.push(mod);
-    this.notify();
-  }
+  addModule(mod: CourseModule) { this.ensureInit(); this.modules.push(mod); this.notify(); }
 
   updateModule(id: string, updates: Partial<CourseModule>) {
     this.ensureInit();
@@ -116,80 +136,88 @@ class ContentStore {
   deleteModule(id: string) {
     this.ensureInit();
     this.modules = this.modules.filter(m => m.id !== id);
-    // Also delete all content in this module
     this.quizzes = this.quizzes.filter(q => q.moduleId !== id);
     this.videoLectures = this.videoLectures.filter(v => v.moduleId !== id);
+    this.resources = this.resources.filter(r => r.moduleId !== id);
     this.notify();
   }
 
   // Quizzes
   getQuizzes(): Quiz[] { return this.quizzes; }
+  getQuizzesByModule(courseId: string, moduleId: string): Quiz[] { return this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId); }
+  getQuiz(id: string): Quiz | undefined { return this.quizzes.find(q => q.id === id); }
 
-  getQuizzesByModule(courseId: string, moduleId: string): Quiz[] {
-    return this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId);
-  }
-
-  getQuiz(id: string): Quiz | undefined {
-    return this.quizzes.find(q => q.id === id);
-  }
-
-  addQuiz(quiz: Quiz) {
-    this.quizzes.push(quiz);
-    this.notify();
-  }
+  addQuiz(quiz: Quiz) { this.quizzes.push(quiz); this.notify(); }
 
   updateQuiz(id: string, updates: Partial<Quiz>) {
     this.quizzes = this.quizzes.map(q => q.id === id ? { ...q, ...updates } : q);
     this.notify();
   }
 
-  deleteQuiz(id: string) {
-    this.quizzes = this.quizzes.filter(q => q.id !== id);
-    this.notify();
-  }
+  deleteQuiz(id: string) { this.quizzes = this.quizzes.filter(q => q.id !== id); this.notify(); }
 
   // Video Lectures
   getVideoLectures(): VideoLecture[] { return this.videoLectures; }
+  getVideoLecturesByModule(courseId: string, moduleId: string): VideoLecture[] { return this.videoLectures.filter(v => v.courseId === courseId && v.moduleId === moduleId); }
+  getVideoLecture(id: string): VideoLecture | undefined { return this.videoLectures.find(v => v.id === id); }
 
-  getVideoLecturesByModule(courseId: string, moduleId: string): VideoLecture[] {
-    return this.videoLectures.filter(v => v.courseId === courseId && v.moduleId === moduleId);
-  }
-
-  getVideoLecture(id: string): VideoLecture | undefined {
-    return this.videoLectures.find(v => v.id === id);
-  }
-
-  addVideoLecture(lecture: VideoLecture) {
-    this.videoLectures.push(lecture);
-    this.notify();
-  }
+  addVideoLecture(lecture: VideoLecture) { this.videoLectures.push(lecture); this.notify(); }
 
   updateVideoLecture(id: string, updates: Partial<VideoLecture>) {
     this.videoLectures = this.videoLectures.map(v => v.id === id ? { ...v, ...updates } : v);
     this.notify();
   }
 
-  deleteVideoLecture(id: string) {
-    this.videoLectures = this.videoLectures.filter(v => v.id !== id);
+  deleteVideoLecture(id: string) { this.videoLectures = this.videoLectures.filter(v => v.id !== id); this.notify(); }
+
+  // Resources
+  getResources(): Resource[] { return this.resources; }
+  getResourcesByModule(courseId: string, moduleId: string): Resource[] { return this.resources.filter(r => r.courseId === courseId && r.moduleId === moduleId); }
+  getResource(id: string): Resource | undefined { return this.resources.find(r => r.id === id); }
+  getResourcesByCourse(courseId: string): Resource[] { return this.resources.filter(r => r.courseId === courseId); }
+
+  addResource(resource: Resource) { this.resources.push(resource); this.notify(); }
+
+  updateResource(id: string, updates: Partial<Resource>) {
+    this.resources = this.resources.map(r => r.id === id ? { ...r, ...updates } : r);
     this.notify();
+  }
+
+  deleteResource(id: string) { this.resources = this.resources.filter(r => r.id !== id); this.notify(); }
+
+  // Interventions
+  getInterventions(): Intervention[] { return this.interventions; }
+  getInterventionsForLearner(learnerId: string): Intervention[] {
+    return this.interventions.filter(i => i.targetLearnerIds.includes(learnerId));
+  }
+
+  addIntervention(intervention: Intervention) { this.interventions.push(intervention); this.notify(); }
+
+  // Lecture completions
+  getLectureCompletions(): LectureCompletion[] { return this.lectureCompletions; }
+  isLectureCompleted(learnerId: string, lectureId: string): boolean {
+    return this.lectureCompletions.some(c => c.learnerId === learnerId && c.lectureId === lectureId);
+  }
+  completeLecture(learnerId: string, lectureId: string) {
+    if (!this.isLectureCompleted(learnerId, lectureId)) {
+      this.lectureCompletions.push({ learnerId, lectureId, completedAt: new Date().toISOString() });
+      this.notify();
+    }
   }
 
   // Get all content for a module
   getModuleContent(courseId: string, moduleId: string): ContentItem[] {
     const items: ContentItem[] = [];
-    this.quizzes
-      .filter(q => q.courseId === courseId && q.moduleId === moduleId)
-      .forEach(q => items.push({ type: "quiz", data: q }));
-    this.videoLectures
-      .filter(v => v.courseId === courseId && v.moduleId === moduleId)
-      .forEach(v => items.push({ type: "video", data: v }));
+    this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId).forEach(q => items.push({ type: "quiz", data: q }));
+    this.videoLectures.filter(v => v.courseId === courseId && v.moduleId === moduleId).forEach(v => items.push({ type: "video", data: v }));
+    this.resources.filter(r => r.courseId === courseId && r.moduleId === moduleId && !r.isOptional).forEach(r => items.push({ type: "resource", data: r }));
     return items;
   }
 
-  // Get total content count for a course
   getCourseContentCount(courseId: string): number {
     return this.quizzes.filter(q => q.courseId === courseId).length +
-      this.videoLectures.filter(v => v.courseId === courseId).length;
+      this.videoLectures.filter(v => v.courseId === courseId).length +
+      this.resources.filter(r => r.courseId === courseId && !r.isOptional).length;
   }
 }
 

@@ -30,8 +30,8 @@ const Index = () => (
       <ArcDecoration className="-top-20 -right-20" />
       <FloatingShapes />
       <div className="relative z-10">
-        <h1 className="text-3xl font-bold text-primary-foreground">Welcome back 👋</h1>
-        <p className="text-primary-foreground/70 text-base mt-2 max-w-lg">
+        <h1 className="text-4xl font-bold text-primary-foreground">Hello, Josh!</h1>
+        <p className="text-primary-foreground/60 text-base mt-2 max-w-lg">
           Here's an overview of your learning platform. Track member growth, mastery, and engagement all in one place.
         </p>
       </div>

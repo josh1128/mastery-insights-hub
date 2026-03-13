@@ -3,6 +3,7 @@ import { Users, BookOpen, TrendingUp, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { members } from "@/data/members";
 import { courses } from "@/data/courses";
+import { GlowingIcon, ArcDecoration, FloatingShapes } from "@/components/decorative/PageDecorations";
 
 const stats = [
   { label: "Total Members", value: members.length.toString(), icon: Users, change: "+12%" },
@@ -24,25 +25,32 @@ const memberData = [
 
 const Index = () => (
   <div className="space-y-10 animate-fade-in">
-    {/* Hero section */}
-    <div className="rounded-2xl bg-gradient-to-br from-primary via-primary-glow to-primary p-8 shadow-elevated">
-      <h1 className="text-3xl font-bold text-primary-foreground">Welcome back 👋</h1>
-      <p className="text-primary-foreground/70 text-base mt-2 max-w-lg">
-        Here's an overview of your learning platform. Track member growth, mastery, and engagement all in one place.
-      </p>
+    {/* Hero section with decorative elements */}
+    <div className="relative rounded-3xl bg-gradient-to-br from-primary via-primary-glow to-primary p-10 shadow-glow-lg overflow-hidden">
+      <ArcDecoration className="-top-20 -right-20" />
+      <FloatingShapes />
+      <div className="relative z-10">
+        <h1 className="text-3xl font-bold text-primary-foreground">Welcome back 👋</h1>
+        <p className="text-primary-foreground/70 text-base mt-2 max-w-lg">
+          Here's an overview of your learning platform. Track member growth, mastery, and engagement all in one place.
+        </p>
+      </div>
+      {/* Decorative arc */}
+      <div className="absolute -bottom-16 -right-16 w-64 h-64 rounded-full border-2 border-primary-foreground/10" />
+      <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full border border-primary-foreground/5" />
     </div>
 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {stats.map((s) => (
-        <Card key={s.label} className="hover:shadow-elevated transition-shadow duration-300">
+        <Card key={s.label} className="hover:shadow-glow transition-all duration-300 group">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">{s.label}</p>
                 <p className="text-3xl font-bold text-foreground mt-1.5">{s.value}</p>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
-                <s.icon className="h-5 w-5 text-accent-foreground" />
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center group-hover:shadow-glow transition-all">
+                <s.icon className="h-5 w-5 text-primary" />
               </div>
             </div>
             <p className="text-xs text-success font-semibold mt-3">{s.change} this month</p>
@@ -64,13 +72,14 @@ const Index = () => (
               <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
               <Tooltip
                 contentStyle={{
-                  background: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "12px",
-                  boxShadow: "0 4px 16px hsl(240 70% 60% / 0.08)",
+                  background: "hsla(0, 0%, 100%, 0.9)",
+                  backdropFilter: "blur(12px)",
+                  border: "1px solid hsl(var(--border) / 0.4)",
+                  borderRadius: "16px",
+                  boxShadow: "0 4px 24px hsl(240 70% 60% / 0.1)",
                 }}
               />
-              <Bar dataKey="members" fill="url(#primaryGradient)" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="members" fill="url(#primaryGradient)" radius={[8, 8, 0, 0]} />
               <defs>
                 <linearGradient id="primaryGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--primary))" />

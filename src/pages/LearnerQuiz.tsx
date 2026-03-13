@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
 import { toast } from "sonner";
 import TeachBackChat from "@/components/quiz/TeachBackChat";
@@ -25,6 +25,15 @@ const confidenceOrder: ConfidenceLevel[] = ["not-sure", "unsure", "confident"];
 export default function LearnerQuiz() {
   const { quizId } = useParams();
   const quiz = contentStore.getQuiz(quizId || "");
+  const learnerId = "member-1"; // demo learner identifier used across learner views
+
+  const relatedLectures = quiz
+    ? contentStore.getVideoLecturesByModule(quiz.courseId, quiz.moduleId)
+    : [];
+  const hasRequiredLecture = relatedLectures.length > 0;
+  const hasCompletedAnyLecture =
+    hasRequiredLecture &&
+    relatedLectures.some((l) => contentStore.isLectureCompleted(learnerId, l.id));
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [confidences, setConfidences] = useState<Record<string, ConfidenceLevel>>({});
@@ -63,6 +72,31 @@ export default function LearnerQuiz() {
     const total = quiz.questions.length;
     const correct = quiz.questions.filter(q => answers[q.id] === q.correctAnswer).length;
     toast.success(`Quiz submitted! Score: ${correct}/${total}`);
+
+    const confidencesArray = Object.values(confidences).filter(Boolean) as ConfidenceLevel[];
+    const averageConfidence =
+      confidencesArray.length > 0
+        ? Math.round(
+            (confidencesArray.reduce((sum, level) => {
+              if (level === "not-sure") return sum + 20;
+              if (level === "unsure") return sum + 50;
+              return sum + 85;
+            }, 0) /
+              confidencesArray.length),
+          )
+        : null;
+
+    contentStore.recordQuizResult({
+      id: `qr-${Date.now()}`,
+      learnerId,
+      quizId: quiz.id,
+      courseId: quiz.courseId,
+      moduleId: quiz.moduleId,
+      score: Math.round((correct / total) * 100),
+      averageConfidence,
+      isRetest: !!quiz.isRetest,
+      submittedAt: new Date().toISOString(),
+    });
   };
 
   const quizScore = quiz.questions.filter(q => answers[q.id] === q.correctAnswer).length;
@@ -180,7 +214,12 @@ export default function LearnerQuiz() {
       {/* Submit button */}
       {!submitted && (
         <div className="flex justify-center pb-8">
-          <Button size="lg" onClick={handleSubmit} className="px-10 rounded-full shadow-glow">
+          <Button
+            size="lg"
+            onClick={handleSubmit}
+            className="px-10 rounded-full shadow-glow"
+            disabled={hasRequiredLecture && !hasCompletedAnyLecture}
+          >
             Submit
           </Button>
         </div>

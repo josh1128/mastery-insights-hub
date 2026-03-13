@@ -1,4 +1,5 @@
 import { courses } from "./courses";
+import { contentStore } from "./contentStore";
 
 export interface Member {
   id: string;
@@ -87,6 +88,15 @@ export function getMemberModuleData(
   courseId: string,
   moduleId: string
 ): { score: number; confidence: number } {
+  // If we have real quiz results (including possible retests), use them instead
+  const latest = contentStore.getLatestQuizResultForModule(memberId, courseId, moduleId);
+  if (latest) {
+    return {
+      score: latest.score,
+      confidence: latest.averageConfidence ?? latest.score,
+    };
+  }
+
   // Create a unique seed from the combination
   let seed = 0;
   for (let i = 0; i < memberId.length; i++) seed += memberId.charCodeAt(i) * (i + 1);

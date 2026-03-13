@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageCircle, RotateCcw, BookOpen, Send, CheckSquare } from "lucide-react";
 import { clusterColors, clusterMeta, LearnerDataPoint, ClusterName } from "@/data/masteryData";
 import { contentStore } from "@/data/contentStore";
+import { sendMassMessage } from "@/data/chatStore";
 import { toast } from "sonner";
 
 interface Props {
@@ -36,20 +37,24 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
     const clusterNames = selectedClusters.map((c) => clusterMeta[c as ClusterName]?.label).join(", ");
 
     if (actionType === "message") {
-      if (!messageText.trim()) { toast.error("Please enter a message"); return; }
-      const sendFn = (window as any).__chatSendMassMessage;
-      if (sendFn) {
-        sendFn(uniqueIds, messageText.trim());
+      const trimmed = messageText.trim();
+      if (!trimmed) { toast.error("Please enter a message"); return; }
+      if (uniqueIds.length === 0) { toast.error("Select at least one learner"); return; }
+      try {
+        sendMassMessage(uniqueIds, trimmed);
+        contentStore.addIntervention({
+          id: `int-${Date.now()}`,
+          type: "message",
+          targetLearnerIds: uniqueIds,
+          message: trimmed,
+          courseId,
+          createdAt: new Date().toISOString(),
+        });
+        toast.success(`Message sent to ${uniqueNames.length} learners in: ${clusterNames}`);
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to send message");
+        return;
       }
-      contentStore.addIntervention({
-        id: `int-${Date.now()}`,
-        type: "message",
-        targetLearnerIds: uniqueIds,
-        message: messageText.trim(),
-        courseId,
-        createdAt: new Date().toISOString(),
-      });
-      toast.success(`Message sent to ${uniqueNames.length} learners in: ${clusterNames}`);
     } else if (actionType === "retest") {
       toast.success(`Navigating to Content page to create a retest for ${uniqueNames.length} learners`);
       sessionStorage.setItem("retestLearnerIds", JSON.stringify(uniqueIds));

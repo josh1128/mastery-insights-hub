@@ -1,7 +1,7 @@
 import {
   Home, BookOpen, MessageCircle,
   Users, FileText,
-  Zap, TrendingUp, Brain, Award
+  TrendingUp, Brain, Award
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,7 +20,6 @@ const mainItems = [
 const adminItems = [
   { title: "Members", url: "/admin/members", icon: Users },
   { title: "Content", url: "/admin/content", icon: FileText },
-  { title: "Automations", url: "/admin/automations", icon: Zap },
 ];
 
 const insightItems = [
@@ -54,14 +53,14 @@ export function AppSidebar() {
       <SidebarHeader className="p-5">
         {!collapsed && (
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-soft">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-glow">
               <Brain className="h-4.5 w-4.5 text-primary-foreground" />
             </div>
             <span className="text-lg font-bold text-foreground tracking-tight">Nuvance</span>
           </div>
         )}
         {collapsed && (
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mx-auto shadow-soft">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center mx-auto shadow-glow">
             <Brain className="h-4.5 w-4.5 text-primary-foreground" />
           </div>
         )}
@@ -73,7 +72,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-semibold">
-            {!collapsed && "Admin"}
+            {!collapsed && "Manage"}
           </SidebarGroupLabel>
           <SidebarGroupContent>{renderItems(adminItems)}</SidebarGroupContent>
         </SidebarGroup>

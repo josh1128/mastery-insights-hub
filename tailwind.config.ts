@@ -113,6 +113,7 @@ export default {
         "fade-in": "fade-in 0.4s ease-out",
         "float": "float 8s ease-in-out infinite",
         "pulse-glow": "pulse-glow 3s ease-in-out infinite",
+        aurora: "aurora 60s linear infinite",
       },
     },
   },

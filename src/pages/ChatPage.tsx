@@ -49,7 +49,7 @@ const ChatPage = () => {
     const unsub = chatStore.subscribe(() => {
       setConversations(chatStore.getConversations());
     });
-    return () => unsub();
+    return () => { unsub(); };
   }, []);
 
   useEffect(() => {

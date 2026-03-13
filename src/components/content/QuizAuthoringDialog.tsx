@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,13 +32,24 @@ function newQuestion(type: QuestionType): QuizQuestion {
 }
 
 export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
-  const [title, setTitle] = useState(editQuiz?.title || "");
-  const [courseId, setCourseId] = useState(editQuiz?.courseId || "");
-  const [moduleId, setModuleId] = useState(editQuiz?.moduleId || "");
-  const [captureConfidence, setCaptureConfidence] = useState(editQuiz?.captureConfidence ?? true);
-  const [questions, setQuestions] = useState<QuizQuestion[]>(editQuiz?.questions || [newQuestion("true-false")]);
+  const [title, setTitle] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [moduleId, setModuleId] = useState("");
+  const [captureConfidence, setCaptureConfidence] = useState(true);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([newQuestion("true-false")]);
 
-  const selectedCourse = courses.find(c => c.id === courseId);
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setTitle(editQuiz?.title || "");
+      setCourseId(editQuiz?.courseId || "");
+      setModuleId(editQuiz?.moduleId || "");
+      setCaptureConfidence(editQuiz?.captureConfidence ?? true);
+      setQuestions(editQuiz?.questions || [newQuestion("true-false")]);
+    }
+  }, [open, editQuiz]);
+
+  const courseModules = courseId ? contentStore.getModulesByCourse(courseId) : [];
 
   const addQuestion = (type: QuestionType) => {
     setQuestions(prev => [...prev, newQuestion(type)]);
@@ -107,13 +118,11 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Title */}
           <div className="space-y-2">
             <Label>Quiz Title</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Module 1 Assessment" />
           </div>
 
-          {/* Course & Module */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Course</Label>
@@ -129,13 +138,12 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
               <Select value={moduleId} onValueChange={setModuleId} disabled={!courseId}>
                 <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                 <SelectContent>
-                  {selectedCourse?.modules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  {courseModules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Confidence toggle */}
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div>
               <p className="text-sm font-medium">Capture Confidence</p>
@@ -144,7 +152,6 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz }: Props) {
             <Switch checked={captureConfidence} onCheckedChange={setCaptureConfidence} />
           </div>
 
-          {/* Questions */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label className="text-base">Questions ({questions.length})</Label>

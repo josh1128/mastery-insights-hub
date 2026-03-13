@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,18 +22,31 @@ function formatTime(seconds: number): string {
 }
 
 export function VideoLectureDialog({ open, onOpenChange, editLecture }: Props) {
-  const [title, setTitle] = useState(editLecture?.title || "");
-  const [courseId, setCourseId] = useState(editLecture?.courseId || "");
-  const [moduleId, setModuleId] = useState(editLecture?.moduleId || "");
-  const [fileName, setFileName] = useState(editLecture?.fileName || "");
-  const [fileUrl, setFileUrl] = useState(editLecture?.fileUrl || "");
-  const [checkpoints, setCheckpoints] = useState<ConfidenceCheckpoint[]>(editLecture?.confidenceCheckpoints || []);
-
-  const selectedCourse = courses.find(c => c.id === courseId);
-
+  const [title, setTitle] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [moduleId, setModuleId] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
+  const [checkpoints, setCheckpoints] = useState<ConfidenceCheckpoint[]>([]);
   const [cpMinutes, setCpMinutes] = useState("");
   const [cpSeconds, setCpSeconds] = useState("");
   const [cpPrompt, setCpPrompt] = useState("How confident are you that you understand this concept?");
+
+  useEffect(() => {
+    if (open) {
+      setTitle(editLecture?.title || "");
+      setCourseId(editLecture?.courseId || "");
+      setModuleId(editLecture?.moduleId || "");
+      setFileName(editLecture?.fileName || "");
+      setFileUrl(editLecture?.fileUrl || "");
+      setCheckpoints(editLecture?.confidenceCheckpoints || []);
+      setCpMinutes("");
+      setCpSeconds("");
+      setCpPrompt("How confident are you that you understand this concept?");
+    }
+  }, [open, editLecture]);
+
+  const courseModules = courseId ? contentStore.getModulesByCourse(courseId) : [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,13 +127,12 @@ export function VideoLectureDialog({ open, onOpenChange, editLecture }: Props) {
               <Select value={moduleId} onValueChange={setModuleId} disabled={!courseId}>
                 <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
                 <SelectContent>
-                  {selectedCourse?.modules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  {courseModules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* File upload */}
           <div className="space-y-2">
             <Label>Video File</Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
@@ -140,7 +152,6 @@ export function VideoLectureDialog({ open, onOpenChange, editLecture }: Props) {
             </div>
           </div>
 
-          {/* Confidence Checkpoints */}
           <div className="space-y-3">
             <Label className="text-base">Confidence Checkpoints</Label>
             <p className="text-xs text-muted-foreground">

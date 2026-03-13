@@ -1,22 +1,31 @@
+import { useReducer, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { BookOpen, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { courses } from "@/data/courses";
 import { members } from "@/data/members";
+import { contentStore } from "@/data/contentStore";
 
 const CoursesPage = () => {
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+  useEffect(() => {
+    const unsub = contentStore.subscribe(forceUpdate);
+    return () => { unsub(); };
+  }, []);
+
   const courseCards = courses.map(course => {
     const enrolled = members.filter(m => m.enrolledCourseIds.includes(course.id)).length;
-    return { ...course, enrolled, progress: Math.round(60 + Math.random() * 30) };
+    const moduleCount = contentStore.getModulesByCourse(course.id).length;
+    const contentCount = contentStore.getCourseContentCount(course.id);
+    return { ...course, enrolled, moduleCount, contentCount };
   });
 
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Courses</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage your learning products</p>
+        <p className="text-muted-foreground text-sm mt-1">Browse available courses</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -33,14 +42,7 @@ const CoursesPage = () => {
                 </div>
                 <div className="flex items-center gap-4 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Users className="h-3 w-3" />{course.enrolled} learners</span>
-                  <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{course.modules.length} modules</span>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Avg Progress</span>
-                    <span className="font-medium text-foreground">{course.progress}%</span>
-                  </div>
-                  <Progress value={course.progress} className="h-1.5" />
+                  <span className="flex items-center gap-1"><BookOpen className="h-3 w-3" />{course.moduleCount} modules · {course.contentCount} items</span>
                 </div>
               </CardContent>
             </Card>

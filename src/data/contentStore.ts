@@ -1,5 +1,7 @@
-// Central content store for quizzes and video lectures
-// This is a simple reactive store using listeners pattern
+// Central content store for modules, quizzes, and video lectures
+// Single source of truth for all course content
+
+import { courses as courseDefs } from "@/data/courses";
 
 export type QuestionType = "true-false" | "multiple-choice";
 
@@ -7,8 +9,6 @@ export interface QuizQuestion {
   id: string;
   type: QuestionType;
   text: string;
-  // For true-false: correctAnswer is "true" or "false"
-  // For multiple-choice: correctAnswer is the id of the correct option
   correctAnswer: string;
   options?: { id: string; text: string }[];
 }
@@ -35,21 +35,46 @@ export interface VideoLecture {
   courseId: string;
   moduleId: string;
   fileName: string;
-  fileUrl: string; // blob URL or placeholder
+  fileUrl: string;
   confidenceCheckpoints: ConfidenceCheckpoint[];
   createdAt: string;
 }
 
-export type ContentItem = 
+export interface CourseModule {
+  id: string;
+  courseId: string;
+  name: string;
+  createdAt: string;
+}
+
+export type ContentItem =
   | { type: "quiz"; data: Quiz }
   | { type: "video"; data: VideoLecture };
 
 type Listener = () => void;
 
 class ContentStore {
+  private modules: CourseModule[] = [];
   private quizzes: Quiz[] = [];
   private videoLectures: VideoLecture[] = [];
   private listeners: Set<Listener> = new Set();
+  private initialized = false;
+
+  private ensureInit() {
+    if (this.initialized) return;
+    this.initialized = true;
+    // Seed modules from course definitions
+    for (const course of courseDefs) {
+      for (const mod of course.modules) {
+        this.modules.push({
+          id: mod.id,
+          courseId: course.id,
+          name: mod.name,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+  }
 
   subscribe(listener: Listener) {
     this.listeners.add(listener);
@@ -60,9 +85,46 @@ class ContentStore {
     this.listeners.forEach(fn => fn());
   }
 
+  // Modules
+  getModules(): CourseModule[] {
+    this.ensureInit();
+    return this.modules;
+  }
+
+  getModulesByCourse(courseId: string): CourseModule[] {
+    this.ensureInit();
+    return this.modules.filter(m => m.courseId === courseId);
+  }
+
+  getModule(id: string): CourseModule | undefined {
+    this.ensureInit();
+    return this.modules.find(m => m.id === id);
+  }
+
+  addModule(mod: CourseModule) {
+    this.ensureInit();
+    this.modules.push(mod);
+    this.notify();
+  }
+
+  updateModule(id: string, updates: Partial<CourseModule>) {
+    this.ensureInit();
+    this.modules = this.modules.map(m => m.id === id ? { ...m, ...updates } : m);
+    this.notify();
+  }
+
+  deleteModule(id: string) {
+    this.ensureInit();
+    this.modules = this.modules.filter(m => m.id !== id);
+    // Also delete all content in this module
+    this.quizzes = this.quizzes.filter(q => q.moduleId !== id);
+    this.videoLectures = this.videoLectures.filter(v => v.moduleId !== id);
+    this.notify();
+  }
+
   // Quizzes
   getQuizzes(): Quiz[] { return this.quizzes; }
-  
+
   getQuizzesByModule(courseId: string, moduleId: string): Quiz[] {
     return this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId);
   }
@@ -122,6 +184,12 @@ class ContentStore {
       .filter(v => v.courseId === courseId && v.moduleId === moduleId)
       .forEach(v => items.push({ type: "video", data: v }));
     return items;
+  }
+
+  // Get total content count for a course
+  getCourseContentCount(courseId: string): number {
+    return this.quizzes.filter(q => q.courseId === courseId).length +
+      this.videoLectures.filter(v => v.courseId === courseId).length;
   }
 }
 

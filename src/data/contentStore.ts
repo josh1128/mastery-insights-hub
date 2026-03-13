@@ -79,6 +79,16 @@ export interface LectureCompletion {
   completedAt: string;
 }
 
+// Track teach-back scores for mastery integration
+export interface TeachBackScore {
+  learnerId: string;
+  quizId: string;
+  courseId: string;
+  moduleId: string;
+  score: number; // 0-100
+  completedAt: string;
+}
+
 export type ContentItem =
   | { type: "quiz"; data: Quiz }
   | { type: "video"; data: VideoLecture }

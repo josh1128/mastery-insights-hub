@@ -10,7 +10,6 @@ import CoursesPage from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import EngagementPage from "./pages/insights/Engagement";
 import MasteryPage from "./pages/insights/Mastery";
-import CertificateBuilder from "./pages/CertificateBuilder";
 import ChatPage from "./pages/ChatPage";
 import MembersPage from "./pages/admin/Members";
 import { AutomationsPage } from "./pages/PlaceholderPages";
@@ -37,7 +36,6 @@ const App = () => (
             <Route path="/admin/automations" element={<AutomationsPage />} />
             <Route path="/insights/engagement" element={<EngagementPage />} />
             <Route path="/insights/mastery" element={<MasteryPage />} />
-            <Route path="/certificates" element={<CertificateBuilder />} />
             <Route path="/learn/quiz/:quizId" element={<LearnerQuiz />} />
             <Route path="/learn/lecture/:lectureId" element={<LearnerLecture />} />
             <Route path="*" element={<NotFound />} />

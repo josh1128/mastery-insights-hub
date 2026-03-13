@@ -111,6 +111,7 @@ type Listener = () => void;
 class ContentStore {
   private modules: CourseModule[] = [];
   private quizzes: Quiz[] = [];
+  private quizResults: QuizResult[] = [];
   private videoLectures: VideoLecture[] = [];
   private resources: Resource[] = [];
   private interventions: Intervention[] = [];

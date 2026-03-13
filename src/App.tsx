@@ -14,8 +14,11 @@ import CertificateBuilder from "./pages/CertificateBuilder";
 import ChatPage from "./pages/ChatPage";
 import MembersPage from "./pages/admin/Members";
 import {
-  AdminDashboard, ContentPage, AutomationsPage,
+  AdminDashboard, AutomationsPage,
 } from "./pages/PlaceholderPages";
+import ContentPage from "./pages/ContentPage";
+import LearnerQuiz from "./pages/LearnerQuiz";
+import LearnerLecture from "./pages/LearnerLecture";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +41,8 @@ const App = () => (
             <Route path="/insights/engagement" element={<EngagementPage />} />
             <Route path="/insights/mastery" element={<MasteryPage />} />
             <Route path="/certificates" element={<CertificateBuilder />} />
+            <Route path="/learn/quiz/:quizId" element={<LearnerQuiz />} />
+            <Route path="/learn/lecture/:lectureId" element={<LearnerLecture />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>

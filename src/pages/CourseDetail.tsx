@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Users, BookOpen, Award, Play, Video, FileText, File, Lock, MessageSquare } from "lucide-react";
+import { ArrowLeft, Users, BookOpen, Award, Play, Video, FileText, File, Lock } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getCourse } from "@/data/courses";
 import { members } from "@/data/members";
@@ -106,7 +106,6 @@ const CourseDetail = () => {
                       const hasClusterAdditions =
                         clusterAdditions.resources.length > 0 ||
                         clusterAdditions.retestQuiz ||
-                        clusterAdditions.messages.length > 0 ||
                         clusterAdditions.optionalResources.length > 0;
 
                       return (
@@ -114,12 +113,12 @@ const CourseDetail = () => {
                           <AccordionTrigger className="text-sm font-medium hover:no-underline">
                             <div className="flex items-center gap-2 w-full">
                               <span>{mod.name}</span>
-                              <Badge variant="secondary" className="text-[10px] ml-auto mr-2 rounded-full">{baseCount} base items</Badge>
+                              <Badge variant="secondary" className="text-[10px] ml-auto mr-2 rounded-full">{baseCount} items</Badge>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            {/* Cluster selector + preview label */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b border-border/40 mb-3">
+                            {/* Cluster selector */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b border-border/40 mb-4">
                               <span className="text-xs text-muted-foreground">Viewing module as:</span>
                               <ClusterSelector value={cluster} onValueChange={setCluster} />
                               <Badge variant="outline" className="text-[10px] w-fit rounded-full" style={{ borderColor: clusterColors[cluster] }}>
@@ -127,75 +126,80 @@ const CourseDetail = () => {
                               </Badge>
                             </div>
 
-                            {/* Base module content */}
-                            {baseCount === 0 ? (
-                              <p className="text-xs text-muted-foreground py-2">No base content in this module yet.</p>
-                            ) : (
-                              <ul className="space-y-1.5">
-                                {baseContent.videos.map(vid => (
-                                  <li key={vid.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
-                                    <div className="flex items-center gap-2">
-                                      <Video className="h-3.5 w-3.5 text-primary" />
-                                      <span>{vid.title}</span>
-                                      <Badge variant="outline" className="text-[9px] rounded-full">Video</Badge>
-                                    </div>
-                                    <Link to={`/learn/lecture/${vid.id}`}>
-                                      <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
-                                    </Link>
-                                  </li>
-                                ))}
-                                {baseContent.quizzes.map(quiz => {
-                                  const isLocked = !lecturesCompleted;
-                                  return (
-                                    <li key={quiz.id} className={`flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 rounded-r-lg transition-colors ${
-                                      isLocked ? "text-muted-foreground/50 border-border" : "text-muted-foreground border-primary/20 hover:border-primary hover:text-foreground hover:bg-accent/30"
-                                    }`}>
-                                      <div className="flex items-center gap-2">
-                                        {isLocked ? <Lock className="h-3.5 w-3.5 text-muted-foreground/50" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
-                                        <span>{quiz.title}</span>
-                                        <Badge variant="outline" className="text-[9px] rounded-full">Quiz</Badge>
-                                        {isLocked && <span className="text-[9px] text-muted-foreground/50">Complete lectures first</span>}
-                                      </div>
-                                      {isLocked ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 opacity-30 cursor-not-allowed rounded-full" disabled>
-                                              <Lock className="h-3 w-3" />
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>Complete all lectures in this module first</TooltipContent>
-                                        </Tooltip>
-                                      ) : (
-                                        <Link to={`/learn/quiz/${quiz.id}`}>
-                                          <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
-                                        </Link>
-                                      )}
-                                    </li>
-                                  );
-                                })}
-                                {baseContent.resources.map(res => (
-                                  <li key={res.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
-                                    <button
-                                      type="button"
-                                      onClick={() => setResourcePreview(res)}
-                                      className="flex items-center gap-2 text-left flex-1 min-w-0"
-                                    >
-                                      <File className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                      <span className="truncate">{res.title}</span>
-                                      <Badge variant="outline" className="text-[9px] rounded-full shrink-0">{res.fileType.toUpperCase()}</Badge>
-                                    </button>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-
-                            {/* Additional Support for this Cluster */}
-                            <div className="mt-4 pt-4 border-t border-border/40">
-                              <p className="text-xs font-medium text-muted-foreground mb-3">Additional Support for this Cluster</p>
-                              {!hasClusterAdditions ? (
-                                <p className="text-xs text-muted-foreground/80 py-2">No additional support resources assigned for this cluster yet.</p>
+                            {/* All Content section */}
+                            <div className="space-y-1">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">All Content</h4>
+                              {baseCount === 0 ? (
+                                <p className="text-xs text-muted-foreground py-2">No content in this module yet.</p>
                               ) : (
-                                <div className="space-y-3">
+                                <ul className="space-y-1.5">
+                                  {baseContent.videos.map(vid => (
+                                    <li key={vid.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
+                                      <div className="flex items-center gap-2">
+                                        <Video className="h-3.5 w-3.5 text-primary" />
+                                        <span>{vid.title}</span>
+                                        <Badge variant="outline" className="text-[9px] rounded-full">Video</Badge>
+                                      </div>
+                                      <Link to={`/learn/lecture/${vid.id}`}>
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
+                                      </Link>
+                                    </li>
+                                  ))}
+                                  {baseContent.quizzes.map(quiz => {
+                                    const isLocked = !lecturesCompleted;
+                                    return (
+                                      <li key={quiz.id} className={`flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 rounded-r-lg transition-colors ${
+                                        isLocked ? "text-muted-foreground/50 border-border" : "text-muted-foreground border-primary/20 hover:border-primary hover:text-foreground hover:bg-accent/30"
+                                      }`}>
+                                        <div className="flex items-center gap-2">
+                                          {isLocked ? <Lock className="h-3.5 w-3.5 text-muted-foreground/50" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
+                                          <span>{quiz.title}</span>
+                                          <Badge variant="outline" className="text-[9px] rounded-full">Quiz</Badge>
+                                          {isLocked && <span className="text-[9px] text-muted-foreground/50">Complete all lectures first</span>}
+                                        </div>
+                                        {isLocked ? (
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button size="icon" variant="ghost" className="h-7 w-7 opacity-30 cursor-not-allowed rounded-full" disabled>
+                                                <Lock className="h-3 w-3" />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Complete all lectures in this module first</TooltipContent>
+                                          </Tooltip>
+                                        ) : (
+                                          <Link to={`/learn/quiz/${quiz.id}`}>
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
+                                          </Link>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                  {baseContent.resources.map(res => (
+                                    <li key={res.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
+                                      <button
+                                        type="button"
+                                        onClick={() => setResourcePreview(res)}
+                                        className="flex items-center gap-2 text-left flex-1 min-w-0"
+                                      >
+                                        <File className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                        <span className="truncate">{res.title}</span>
+                                        <Badge variant="outline" className="text-[9px] rounded-full shrink-0">{res.fileType.toUpperCase()}</Badge>
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
+                            {/* Additional Resources for this Cluster */}
+                            <div className="mt-6 pt-4 border-t border-border/40">
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                                Additional Resources for this Cluster
+                              </h4>
+                              {!hasClusterAdditions ? (
+                                <p className="text-xs text-muted-foreground/80 py-2">No additional resources assigned for this cluster yet.</p>
+                              ) : (
+                                <div className="space-y-2">
                                   {clusterAdditions.resources.map(res => (
                                     <div key={res.id} className="flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 border-primary/30 rounded-r-lg bg-accent/20">
                                       <button
@@ -223,7 +227,7 @@ const CourseDetail = () => {
                                       </button>
                                     </div>
                                   ))}
-                                  {clusterAdditions.retestQuiz ? (
+                                  {clusterAdditions.retestQuiz && (
                                     <div className="flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 border-primary/30 rounded-r-lg bg-accent/20">
                                       <div className="flex items-center gap-2">
                                         <FileText className="h-3.5 w-3.5 text-primary" />
@@ -234,17 +238,7 @@ const CourseDetail = () => {
                                         <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
                                       </Link>
                                     </div>
-                                  ) : (
-                                    <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4">
-                                      <p className="text-sm text-muted-foreground">No retest quiz has been assigned to this cluster for this module yet.</p>
-                                    </div>
                                   )}
-                                  {clusterAdditions.messages.map(m => (
-                                    <div key={m.id} className="flex items-start gap-2 text-sm py-2 pl-3 border-l-2 border-primary/20 rounded-r-lg bg-accent/10">
-                                      <MessageSquare className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                                      <span className="text-muted-foreground">{m.text}</span>
-                                    </div>
-                                  ))}
                                 </div>
                               )}
                             </div>

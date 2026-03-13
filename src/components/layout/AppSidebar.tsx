@@ -1,7 +1,7 @@
 import {
   Home, BookOpen, MessageCircle,
   Users, FileText,
-  TrendingUp, Brain, Award
+  TrendingUp, Brain
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -82,21 +82,6 @@ export function AppSidebar() {
             {!collapsed && "Insights"}
           </SidebarGroupLabel>
           <SidebarGroupContent>{renderItems(insightItems)}</SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isActive("/certificates")}>
-                  <NavLink to="/certificates" end activeClassName="bg-accent text-accent-foreground font-semibold">
-                    <Award className="h-4 w-4" />
-                    {!collapsed && <span>Certificates</span>}
-                  </NavLink>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>

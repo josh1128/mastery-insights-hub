@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore, useCallback } from "react";
+import { useState, useReducer, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,12 @@ import { toast } from "sonner";
 import type { Quiz, VideoLecture } from "@/data/contentStore";
 
 export default function ContentPage() {
-  // Subscribe to store changes
-  const subscribe = useCallback((cb: () => void) => contentStore.subscribe(cb), []);
-  const getSnapshot = useCallback(() => ({
-    quizzes: contentStore.getQuizzes(),
-    videos: contentStore.getVideoLectures(),
-    _ts: Date.now(),
-  }), []);
-  const store = useSyncExternalStore(subscribe, getSnapshot);
+  // Force re-render when store changes
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+  useEffect(() => contentStore.subscribe(forceUpdate), []);
+
+  const allQuizzes = contentStore.getQuizzes();
+  const allVideos = contentStore.getVideoLectures();
 
   const [selectedCourse, setSelectedCourse] = useState(courses[0]?.id || "");
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);

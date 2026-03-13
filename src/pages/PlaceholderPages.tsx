@@ -15,5 +15,4 @@ const PlaceholderPage = ({ title, description }: { title: string; description: s
 );
 
 export const AdminDashboard = () => <PlaceholderPage title="Admin Dashboard" description="Manage your platform" />;
-export const ContentPage = () => <PlaceholderPage title="Content" description="Manage your learning content" />;
 export const AutomationsPage = () => <PlaceholderPage title="Automations" description="Set up automated workflows" />;

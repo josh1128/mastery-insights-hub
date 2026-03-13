@@ -9,7 +9,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar />
-          <main className="flex-1 p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-8 overflow-auto bg-gradient-mesh">
+            {children}
+          </main>
         </div>
       </div>
     </SidebarProvider>

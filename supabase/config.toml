@@ -1,1 +1,4 @@
 project_id = "qgscqbfkezcwsjadszwg"
+
+[functions.teach-back]
+verify_jwt = false

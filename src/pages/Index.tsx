@@ -1,48 +1,15 @@
-import { Users, BookOpen, TrendingUp, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, BookOpen, TrendingUp, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { members } from "@/data/members";
 import { courses } from "@/data/courses";
-import { BentoGrid, type BentoItem } from "@/components/ui/bento-grid";
-import { ArcDecoration, FloatingShapes } from "@/components/decorative/PageDecorations";
+import { GlowingIcon, ArcDecoration, FloatingShapes } from "@/components/decorative/PageDecorations";
 
-const statItems: BentoItem[] = [
-  {
-    title: "Total Members",
-    description: "Active members enrolled across all courses on the platform.",
-    icon: <Users className="h-5 w-5" />,
-    meta: members.length.toString(),
-    status: "Live",
-    tags: ["Members", "Growth"],
-    cta: "+12% this month",
-  },
-  {
-    title: "Active Courses",
-    description: "Courses currently available for learner enrollment.",
-    icon: <BookOpen className="h-5 w-5" />,
-    meta: `${courses.length} active`,
-    status: "Active",
-    tags: ["Courses"],
-    cta: `${courses.length} active`,
-  },
-  {
-    title: "Avg Mastery",
-    description: "Average mastery score across all enrolled learners.",
-    icon: <TrendingUp className="h-5 w-5" />,
-    meta: "78%",
-    status: "Tracking",
-    tags: ["Insights", "AI"],
-    cta: "+5% this month",
-  },
-  {
-    title: "Certificates Issued",
-    description: "Total certificates awarded to learners upon course completion.",
-    icon: <Award className="h-5 w-5" />,
-    meta: "342",
-    status: "Updated",
-    tags: ["Awards"],
-    cta: "+28 this month",
-  },
+const stats = [
+  { label: "Total Members", value: members.length.toString(), icon: Users, change: "+12%" },
+  { label: "Active Courses", value: courses.length.toString(), icon: BookOpen, change: `${courses.length} active` },
+  { label: "Avg Mastery", value: "78%", icon: TrendingUp, change: "+5%" },
+  { label: "Certificates Issued", value: "342", icon: Award, change: "+28" },
 ];
 
 const memberData = [
@@ -58,7 +25,7 @@ const memberData = [
 
 const Index = () => (
   <div className="space-y-10 animate-fade-in">
-    {/* Hero section */}
+    {/* Hero section with decorative elements */}
     <div className="relative rounded-3xl bg-gradient-to-br from-primary via-primary-glow to-primary p-10 shadow-glow-lg overflow-hidden">
       <ArcDecoration className="-top-20 -right-20" />
       <FloatingShapes />
@@ -68,14 +35,30 @@ const Index = () => (
           Here's an overview of your learning platform. Track member growth, mastery, and engagement all in one place.
         </p>
       </div>
+      {/* Decorative arc */}
       <div className="absolute -bottom-16 -right-16 w-64 h-64 rounded-full border-2 border-primary-foreground/10" />
       <div className="absolute -bottom-24 -right-24 w-80 h-80 rounded-full border border-primary-foreground/5" />
     </div>
 
-    {/* Stat cards as bento grid */}
-    <BentoGrid items={statItems} columns={4} />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {stats.map((s) => (
+        <Card key={s.label} className="hover:shadow-glow transition-all duration-300 group">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">{s.label}</p>
+                <p className="text-3xl font-bold text-foreground mt-1.5">{s.value}</p>
+              </div>
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center group-hover:shadow-glow transition-all">
+                <s.icon className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <p className="text-xs text-success font-semibold mt-3">{s.change} this month</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
 
-    {/* Charts */}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2">
         <CardHeader>

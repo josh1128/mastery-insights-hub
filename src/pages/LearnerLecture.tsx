@@ -10,13 +10,11 @@ export default function LearnerLecture() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [completed, setCompleted] = useState(false);
 
-  // Mark lecture complete when video ends
   useEffect(() => {
     if (!lecture || !videoRef.current) return;
     const video = videoRef.current;
     const handleEnded = () => {
       setCompleted(true);
-      // Mark as completed for a demo learner
       contentStore.completeLecture("demo-learner", lecture.id);
     };
     video.addEventListener("ended", handleEnded);
@@ -40,22 +38,21 @@ export default function LearnerLecture() {
         <ArrowLeft className="h-4 w-4 mr-1" /> Back to Content
       </Link>
 
-      <div className="bg-background rounded-xl border border-border overflow-hidden">
+      <div className="bg-card/90 backdrop-blur-sm rounded-3xl border border-border/40 overflow-hidden shadow-glass">
         <div className="p-8 pb-4">
           <h1 className="text-3xl font-light text-foreground">{lecture.title}</h1>
         </div>
 
-        {/* Clean video player - no timestamp markers */}
         <div className="px-8">
           {lecture.fileUrl ? (
             <video
               ref={videoRef}
               src={lecture.fileUrl}
               controls
-              className="w-full rounded-lg bg-muted aspect-video"
+              className="w-full rounded-2xl bg-muted aspect-video"
             />
           ) : (
-            <div className="w-full aspect-video bg-muted rounded-lg flex items-center justify-center">
+            <div className="w-full aspect-video bg-gradient-to-br from-muted to-accent/30 rounded-2xl flex items-center justify-center">
               <p className="text-muted-foreground">Video placeholder</p>
             </div>
           )}
@@ -68,7 +65,7 @@ export default function LearnerLecture() {
           {!completed && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Watch the full lecture to unlock the quiz.</p>
-              <Button variant="outline" size="sm" onClick={() => { setCompleted(true); contentStore.completeLecture("demo-learner", lecture.id); }}>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setCompleted(true); contentStore.completeLecture("demo-learner", lecture.id); }}>
                 Mark as Complete
               </Button>
             </div>

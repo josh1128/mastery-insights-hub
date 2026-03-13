@@ -8,9 +8,9 @@ import { toast } from "sonner";
 type ConfidenceLevel = "not-sure" | "unsure" | "confident" | null;
 
 const confidenceColors: Record<string, string> = {
-  "not-sure": "hsl(0 72% 51%)",    // red
-  "unsure": "hsl(45 93% 47%)",     // yellow
-  "confident": "hsl(142 71% 45%)", // green
+  "not-sure": "hsl(0 72% 51%)",
+  "unsure": "hsl(45 93% 47%)",
+  "confident": "hsl(142 71% 45%)",
 };
 
 const confidenceLabels: Record<string, string> = {
@@ -63,7 +63,6 @@ export default function LearnerQuiz() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">{quiz.title}</h1>
@@ -71,26 +70,19 @@ export default function LearnerQuiz() {
             <div className="flex items-center gap-4 mt-3 text-sm">
               <span className="text-muted-foreground">Click the button to change your confidence level.</span>
               <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: confidenceColors["not-sure"] }} />
-                  Not sure
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: confidenceColors["unsure"] }} />
-                  Unsure
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: confidenceColors["confident"] }} />
-                  Confident
-                </span>
+                {confidenceOrder.map(level => level && (
+                  <span key={level} className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: confidenceColors[level] }} />
+                    {confidenceLabels[level]}
+                  </span>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Questions */}
-      <div className="rounded-xl bg-muted/50 p-6 md:p-8 space-y-8">
+      <div className="rounded-3xl bg-card/80 backdrop-blur-sm border border-border/40 p-6 md:p-8 space-y-8 shadow-glass">
         {quiz.questions.map((q, idx) => (
           <div key={q.id} className="space-y-4">
             <p className="text-base font-medium text-foreground">
@@ -100,7 +92,6 @@ export default function LearnerQuiz() {
             <div className="flex items-center gap-4 flex-wrap">
               {q.type === "true-false" ? (
                 <>
-                  {/* Confidence button */}
                   {quiz.captureConfidence && (
                     <button
                       onClick={() => !submitted && cycleConfidence(q.id)}
@@ -112,26 +103,19 @@ export default function LearnerQuiz() {
                       title={confidences[q.id] ? confidenceLabels[confidences[q.id]!] : "Click to set confidence"}
                     />
                   )}
-                  <button
-                    onClick={() => selectAnswer(q.id, "true")}
-                    className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
-                      answers[q.id] === "true"
-                        ? "bg-foreground text-background"
-                        : "bg-background border border-border text-foreground hover:bg-accent"
-                    } ${submitted && q.correctAnswer === "true" ? "ring-2 ring-green-500" : ""} ${submitted && answers[q.id] === "true" && q.correctAnswer !== "true" ? "ring-2 ring-red-500" : ""}`}
-                  >
-                    True
-                  </button>
-                  <button
-                    onClick={() => selectAnswer(q.id, "false")}
-                    className={`px-5 py-2 rounded-md text-sm font-medium transition-all ${
-                      answers[q.id] === "false"
-                        ? "bg-foreground text-background"
-                        : "bg-background border border-border text-foreground hover:bg-accent"
-                    } ${submitted && q.correctAnswer === "false" ? "ring-2 ring-green-500" : ""} ${submitted && answers[q.id] === "false" && q.correctAnswer !== "false" ? "ring-2 ring-red-500" : ""}`}
-                  >
-                    False
-                  </button>
+                  {["true", "false"].map(val => (
+                    <button
+                      key={val}
+                      onClick={() => selectAnswer(q.id, val)}
+                      className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                        answers[q.id] === val
+                          ? "bg-gradient-to-r from-primary to-primary-glow text-primary-foreground shadow-glow"
+                          : "bg-card border border-border/40 text-foreground hover:bg-accent/50"
+                      } ${submitted && q.correctAnswer === val ? "ring-2 ring-success" : ""} ${submitted && answers[q.id] === val && q.correctAnswer !== val ? "ring-2 ring-destructive" : ""}`}
+                    >
+                      {val === "true" ? "True" : "False"}
+                    </button>
+                  ))}
                 </>
               ) : (
                 <div className="w-full space-y-2">
@@ -155,11 +139,11 @@ export default function LearnerQuiz() {
                     <button
                       key={o.id}
                       onClick={() => selectAnswer(q.id, o.id)}
-                      className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                      className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-medium transition-all ${
                         answers[q.id] === o.id
-                          ? "bg-foreground text-background"
-                          : "bg-background border border-border text-foreground hover:bg-accent"
-                      } ${submitted && q.correctAnswer === o.id ? "ring-2 ring-green-500" : ""} ${submitted && answers[q.id] === o.id && q.correctAnswer !== o.id ? "ring-2 ring-red-500" : ""}`}
+                          ? "bg-gradient-to-r from-primary to-primary-glow text-primary-foreground shadow-glow"
+                          : "bg-card border border-border/40 text-foreground hover:bg-accent/50"
+                      } ${submitted && q.correctAnswer === o.id ? "ring-2 ring-success" : ""} ${submitted && answers[q.id] === o.id && q.correctAnswer !== o.id ? "ring-2 ring-destructive" : ""}`}
                     >
                       {o.text || "Option"}
                     </button>
@@ -171,10 +155,9 @@ export default function LearnerQuiz() {
         ))}
       </div>
 
-      {/* Submit */}
       {!submitted && (
         <div className="flex justify-center pb-8">
-          <Button size="lg" onClick={handleSubmit} className="px-10">
+          <Button size="lg" onClick={handleSubmit} className="px-10 rounded-full shadow-glow">
             Submit
           </Button>
         </div>
@@ -186,7 +169,7 @@ export default function LearnerQuiz() {
             Score: {quiz.questions.filter(q => answers[q.id] === q.correctAnswer).length} / {quiz.questions.length}
           </p>
           <Link to="/admin/content">
-            <Button variant="outline" className="mt-4">Back to Content</Button>
+            <Button variant="outline" className="mt-4 rounded-full">Back to Content</Button>
           </Link>
         </div>
       )}

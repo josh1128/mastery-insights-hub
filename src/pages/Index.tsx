@@ -23,26 +23,29 @@ const memberData = [
 ];
 
 const Index = () => (
-  <div className="space-y-8 animate-fade-in">
-    <div>
-      <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-      <p className="text-muted-foreground text-sm mt-1">Welcome back. Here's an overview of your platform.</p>
+  <div className="space-y-10 animate-fade-in">
+    {/* Hero section */}
+    <div className="rounded-2xl bg-gradient-to-br from-primary via-primary-glow to-primary p-8 shadow-elevated">
+      <h1 className="text-3xl font-bold text-primary-foreground">Welcome back 👋</h1>
+      <p className="text-primary-foreground/70 text-base mt-2 max-w-lg">
+        Here's an overview of your learning platform. Track member growth, mastery, and engagement all in one place.
+      </p>
     </div>
 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {stats.map((s) => (
-        <Card key={s.label}>
+        <Card key={s.label} className="hover:shadow-elevated transition-shadow duration-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">{s.label}</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{s.value}</p>
+                <p className="text-3xl font-bold text-foreground mt-1.5">{s.value}</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
+              <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
                 <s.icon className="h-5 w-5 text-accent-foreground" />
               </div>
             </div>
-            <p className="text-xs text-success font-medium mt-3">{s.change} this month</p>
+            <p className="text-xs text-success font-semibold mt-3">{s.change} this month</p>
           </CardContent>
         </Card>
       ))}
@@ -54,13 +57,26 @@ const Index = () => (
           <CardTitle className="text-base font-semibold">New Members</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart data={memberData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="week" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
               <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip />
-              <Bar dataKey="members" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Tooltip
+                contentStyle={{
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
+                  borderRadius: "12px",
+                  boxShadow: "0 4px 16px hsl(240 70% 60% / 0.08)",
+                }}
+              />
+              <Bar dataKey="members" fill="url(#primaryGradient)" radius={[6, 6, 0, 0]} />
+              <defs>
+                <linearGradient id="primaryGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" />
+                  <stop offset="100%" stopColor="hsl(var(--primary-glow))" />
+                </linearGradient>
+              </defs>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -70,23 +86,18 @@ const Index = () => (
         <CardHeader>
           <CardTitle className="text-base font-semibold">Quick Stats</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">New Members Today</span>
-            <span className="text-2xl font-bold text-foreground">3</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">New This Week</span>
-            <span className="text-2xl font-bold text-foreground">19</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">New This Month</span>
-            <span className="text-2xl font-bold text-foreground">42</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Completion Rate</span>
-            <span className="text-2xl font-bold text-foreground">68%</span>
-          </div>
+        <CardContent className="space-y-6">
+          {[
+            { label: "New Members Today", value: "3" },
+            { label: "New This Week", value: "19" },
+            { label: "New This Month", value: "42" },
+            { label: "Completion Rate", value: "68%" },
+          ].map(item => (
+            <div key={item.label} className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">{item.label}</span>
+              <span className="text-2xl font-bold text-foreground">{item.value}</span>
+            </div>
+          ))}
         </CardContent>
       </Card>
     </div>

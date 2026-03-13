@@ -25,8 +25,15 @@ const stats = [
   { label: "Completion Rate", value: "68%", icon: TrendingUp, change: "+3%" },
 ];
 
+const tooltipStyle = {
+  background: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: "12px",
+  boxShadow: "0 4px 16px hsl(240 70% 60% / 0.08)",
+};
+
 const EngagementPage = () => (
-  <div className="space-y-6 animate-fade-in">
+  <div className="space-y-8 animate-fade-in">
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Insights</h1>
@@ -34,7 +41,7 @@ const EngagementPage = () => (
       </div>
       <div className="flex items-center gap-3">
         <Select defaultValue="30">
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] rounded-xl">
             <SelectValue placeholder="Date range" />
           </SelectTrigger>
           <SelectContent>
@@ -49,36 +56,42 @@ const EngagementPage = () => (
       </div>
     </div>
 
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
       {stats.map((s) => (
-        <Card key={s.label}>
-          <CardContent className="p-5">
+        <Card key={s.label} className="hover:shadow-elevated transition-shadow duration-300">
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground font-medium">{s.label}</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{s.value}</p>
+                <p className="text-3xl font-bold text-foreground mt-1.5">{s.value}</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-accent flex items-center justify-center">
+              <div className="h-12 w-12 rounded-xl bg-accent flex items-center justify-center">
                 <s.icon className="h-5 w-5 text-accent-foreground" />
               </div>
             </div>
-            <p className="text-xs text-success font-medium mt-2">{s.change} vs previous period</p>
+            <p className="text-xs text-success font-semibold mt-3">{s.change} vs previous period</p>
           </CardContent>
         </Card>
       ))}
     </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Card>
         <CardHeader><CardTitle className="text-base">New Members</CardTitle></CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={300}>
             <BarChart data={memberData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="week" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
               <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip />
-              <Bar dataKey="members" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="members" fill="url(#engGradient)" radius={[6, 6, 0, 0]} />
+              <defs>
+                <linearGradient id="engGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary))" />
+                  <stop offset="100%" stopColor="hsl(var(--primary-glow))" />
+                </linearGradient>
+              </defs>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -87,14 +100,14 @@ const EngagementPage = () => (
       <Card>
         <CardHeader><CardTitle className="text-base">Engagement Trends</CardTitle></CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={300}>
             <LineChart data={engagementData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="day" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
               <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="views" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="completions" stroke="hsl(var(--chart-success))" strokeWidth={2} dot={false} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Line type="monotone" dataKey="views" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="completions" stroke="hsl(var(--chart-success))" strokeWidth={2.5} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </CardContent>

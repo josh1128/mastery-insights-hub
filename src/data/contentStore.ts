@@ -103,6 +103,7 @@ class ContentStore {
   private resources: Resource[] = [];
   private interventions: Intervention[] = [];
   private lectureCompletions: LectureCompletion[] = [];
+  private teachBackScores: TeachBackScore[] = [];
   private listeners: Set<Listener> = new Set();
   private initialized = false;
 

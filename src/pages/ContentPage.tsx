@@ -15,10 +15,10 @@ import type { Quiz, VideoLecture } from "@/data/contentStore";
 export default function ContentPage() {
   // Force re-render when store changes
   const [, forceUpdate] = useReducer(x => x + 1, 0);
-  useEffect(() => contentStore.subscribe(forceUpdate), []);
-
-  const allQuizzes = contentStore.getQuizzes();
-  const allVideos = contentStore.getVideoLectures();
+  useEffect(() => {
+    const unsub = contentStore.subscribe(forceUpdate);
+    return () => { unsub(); };
+  }, []);
 
   const [selectedCourse, setSelectedCourse] = useState(courses[0]?.id || "");
   const [quizDialogOpen, setQuizDialogOpen] = useState(false);
@@ -27,8 +27,8 @@ export default function ContentPage() {
   const [editingVideo, setEditingVideo] = useState<VideoLecture | undefined>();
 
   const course = courses.find(c => c.id === selectedCourse);
-  const quizzes = store.quizzes.filter(q => q.courseId === selectedCourse);
-  const videos = store.videos.filter(v => v.courseId === selectedCourse);
+  const quizzes = contentStore.getQuizzes().filter(q => q.courseId === selectedCourse);
+  const videos = contentStore.getVideoLectures().filter(v => v.courseId === selectedCourse);
 
   const openEditQuiz = (quiz: Quiz) => {
     setEditingQuiz(quiz);

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lock } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
 import { toast } from "sonner";
+import TeachBackChat from "@/components/quiz/TeachBackChat";
 
 type ConfidenceLevel = "not-sure" | "unsure" | "confident" | null;
 
@@ -37,6 +38,7 @@ export default function LearnerQuiz() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [confidences, setConfidences] = useState<Record<string, ConfidenceLevel>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [teachBackDone, setTeachBackDone] = useState(false);
 
   if (!quiz) {
     return (
@@ -48,6 +50,8 @@ export default function LearnerQuiz() {
       </div>
     );
   }
+
+  const moduleName = contentStore.getModule(quiz.moduleId)?.name || quiz.moduleId;
 
   const cycleConfidence = (qId: string) => {
     setConfidences(prev => {
@@ -95,12 +99,29 @@ export default function LearnerQuiz() {
     });
   };
 
+  const quizScore = quiz.questions.filter(q => answers[q.id] === q.correctAnswer).length;
+  const quizTotal = quiz.questions.length;
+
+  const handleTeachBackComplete = (score: number) => {
+    setTeachBackDone(true);
+    // Store for mastery integration — using "current-learner" as placeholder
+    contentStore.addTeachBackScore({
+      learnerId: "current-learner",
+      quizId: quiz.id,
+      courseId: quiz.courseId,
+      moduleId: quiz.moduleId,
+      score,
+      completedAt: new Date().toISOString(),
+    });
+    toast.success(`Teach it Back complete! Comprehension: ${score}%`);
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">{quiz.title}</h1>
-          {quiz.captureConfidence && (
+          {quiz.captureConfidence && !submitted && (
             <div className="flex items-center gap-4 mt-3 text-sm">
               <span className="text-muted-foreground">Click the button to change your confidence level.</span>
               <div className="flex items-center gap-3">
@@ -116,18 +137,7 @@ export default function LearnerQuiz() {
         </div>
       </div>
 
-      {hasRequiredLecture && !hasCompletedAnyLecture && (
-        <div className="rounded-3xl border border-border/50 bg-accent/10 px-6 py-4 flex items-center gap-3">
-          <Lock className="h-4 w-4 text-primary" />
-          <div className="text-sm">
-            <p className="font-medium text-foreground">Quiz locked</p>
-            <p className="text-muted-foreground">
-              Complete the associated lecture for this module before taking the quiz.
-            </p>
-          </div>
-        </div>
-      )}
-
+      {/* Quiz questions */}
       <div className="rounded-3xl bg-card/80 backdrop-blur-sm border border-border/40 p-6 md:p-8 space-y-8 shadow-glass">
         {quiz.questions.map((q, idx) => (
           <div key={q.id} className="space-y-4">
@@ -201,6 +211,7 @@ export default function LearnerQuiz() {
         ))}
       </div>
 
+      {/* Submit button */}
       {!submitted && (
         <div className="flex justify-center pb-8">
           <Button
@@ -214,14 +225,30 @@ export default function LearnerQuiz() {
         </div>
       )}
 
+      {/* Post-submission: score + Teach it Back */}
       {submitted && (
-        <div className="text-center pb-8">
-          <p className="text-lg font-semibold text-foreground">
-            Score: {quiz.questions.filter(q => answers[q.id] === q.correctAnswer).length} / {quiz.questions.length}
-          </p>
-          <Link to="/admin/content">
-            <Button variant="outline" className="mt-4 rounded-full">Back to Content</Button>
-          </Link>
+        <div className="space-y-6 pb-8">
+          <div className="text-center">
+            <p className="text-lg font-semibold text-foreground">
+              Score: {quizScore} / {quizTotal}
+            </p>
+          </div>
+
+          {/* Teach it Back section */}
+          {!teachBackDone && (
+            <TeachBackChat
+              quizTitle={quiz.title}
+              moduleName={moduleName}
+              questionTexts={quiz.questions.map(q => q.text)}
+              onComplete={handleTeachBackComplete}
+            />
+          )}
+
+          {teachBackDone && (
+            <Link to="/admin/content" className="flex justify-center">
+              <Button variant="outline" className="rounded-full">Back to Content</Button>
+            </Link>
+          )}
         </div>
       )}
     </div>

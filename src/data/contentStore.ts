@@ -91,6 +91,16 @@ export interface LectureCompletion {
   completedAt: string;
 }
 
+// Track teach-back scores for mastery integration
+export interface TeachBackScore {
+  learnerId: string;
+  quizId: string;
+  courseId: string;
+  moduleId: string;
+  score: number; // 0-100
+  completedAt: string;
+}
+
 export type ContentItem =
   | { type: "quiz"; data: Quiz }
   | { type: "video"; data: VideoLecture }
@@ -105,7 +115,7 @@ class ContentStore {
   private resources: Resource[] = [];
   private interventions: Intervention[] = [];
   private lectureCompletions: LectureCompletion[] = [];
-  private quizResults: QuizResult[] = [];
+  private teachBackScores: TeachBackScore[] = [];
   private listeners: Set<Listener> = new Set();
   private initialized = false;
 
@@ -272,6 +282,23 @@ class ContentStore {
     return this.quizzes.filter(q => q.courseId === courseId).length +
       this.videoLectures.filter(v => v.courseId === courseId).length +
       this.resources.filter(r => r.courseId === courseId && !r.isOptional).length;
+  }
+
+  // Teach-back scores
+  getTeachBackScores(): TeachBackScore[] { return this.teachBackScores; }
+  getTeachBackScore(learnerId: string, quizId: string): TeachBackScore | undefined {
+    return this.teachBackScores.find(t => t.learnerId === learnerId && t.quizId === quizId);
+  }
+  getTeachBackScoresByModule(courseId: string, moduleId: string): TeachBackScore[] {
+    return this.teachBackScores.filter(t => t.courseId === courseId && t.moduleId === moduleId);
+  }
+  addTeachBackScore(score: TeachBackScore) {
+    // Replace existing score for same learner+quiz
+    this.teachBackScores = this.teachBackScores.filter(
+      t => !(t.learnerId === score.learnerId && t.quizId === score.quizId)
+    );
+    this.teachBackScores.push(score);
+    this.notify();
   }
 }
 

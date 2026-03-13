@@ -44,7 +44,10 @@ export function QuizAuthoringDialog({ open, onOpenChange, editQuiz, isRetest }: 
     if (open) {
       setTitle(editQuiz?.title || (isRetest ? "Retest — " : ""));
       setCourseId(editQuiz?.courseId || sessionStorage.getItem("retestCourseId") || "");
-      setModuleId(editQuiz?.moduleId || "");
+      setModuleId(
+        editQuiz?.moduleId ||
+          (isRetest ? sessionStorage.getItem("retestModuleId") || "" : "")
+      );
       setCaptureConfidence(editQuiz?.captureConfidence ?? true);
       setQuestions(editQuiz?.questions || [newQuestion("true-false")]);
     }

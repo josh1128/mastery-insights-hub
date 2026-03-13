@@ -1,10 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { FileDown, TrendingUp, Users, Eye, Clock } from "lucide-react";
 import { PageGlow } from "@/components/decorative/PageDecorations";
+import { BentoGrid, type BentoItem } from "@/components/ui/bento-grid";
 
 const memberData = [
   { week: "Jan 6", members: 2 }, { week: "Jan 13", members: 1 }, { week: "Jan 20", members: 3 },
@@ -19,11 +19,11 @@ const engagementData = [
   { day: "Sun", views: 12, completions: 3 },
 ];
 
-const stats = [
-  { label: "Total Views", value: "3,421", icon: Eye, change: "+18%" },
-  { label: "Avg. Time Spent", value: "24m", icon: Clock, change: "+5%" },
-  { label: "Active Learners", value: "186", icon: Users, change: "+12" },
-  { label: "Completion Rate", value: "68%", icon: TrendingUp, change: "+3%" },
+const statItems: BentoItem[] = [
+  { title: "Total Views", description: "Page views across all learning content.", icon: <Eye className="h-5 w-5" />, meta: "3,421", status: "Live", tags: ["Statistics"], cta: "+18% vs previous" },
+  { title: "Avg. Time Spent", description: "Average session duration per learner.", icon: <Clock className="h-5 w-5" />, meta: "24m", status: "Active", tags: ["Engagement"], cta: "+5% vs previous" },
+  { title: "Active Learners", description: "Learners who accessed content this period.", icon: <Users className="h-5 w-5" />, meta: "186", status: "Tracking", tags: ["Members"], cta: "+12 vs previous" },
+  { title: "Completion Rate", description: "Percentage of started courses completed.", icon: <TrendingUp className="h-5 w-5" />, meta: "68%", status: "Updated", tags: ["Insights"], cta: "+3% vs previous" },
 ];
 
 const tooltipStyle = {
@@ -45,9 +45,7 @@ const EngagementPage = () => (
         </div>
         <div className="flex items-center gap-3">
           <Select defaultValue="30">
-            <SelectTrigger className="w-[180px] rounded-full">
-              <SelectValue placeholder="Date range" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[180px] rounded-full"><SelectValue placeholder="Date range" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="7">Previous 7 days</SelectItem>
               <SelectItem value="30">Previous 30 days</SelectItem>
@@ -60,24 +58,7 @@ const EngagementPage = () => (
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {stats.map((s) => (
-          <Card key={s.label} className="hover:shadow-glow transition-all duration-300 group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">{s.label}</p>
-                  <p className="text-3xl font-bold text-foreground mt-1.5">{s.value}</p>
-                </div>
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center group-hover:shadow-glow transition-all">
-                  <s.icon className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-              <p className="text-xs text-success font-semibold mt-3">{s.change} vs previous period</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <BentoGrid items={statItems} columns={4} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>

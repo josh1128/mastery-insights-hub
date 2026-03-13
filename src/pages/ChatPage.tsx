@@ -7,62 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Search, Send, Circle } from "lucide-react";
-import { members } from "@/data/members";
+import { chatStore, Conversation } from "@/data/chatStore";
 
-interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: Date;
-  isInstructor: boolean;
-}
-
-interface Conversation {
-  id: string;
-  memberId: string;
-  studentName: string;
-  studentInitials: string;
-  lastMessage: string;
-  lastTimestamp: Date;
-  unread: number;
-  online: boolean;
-  messages: Message[];
-}
-
-const sampleMessages = [
-  "I'm struggling with this module, can you help?",
-  "Thanks for the extra practice materials!",
-  "When is the retake available?",
-  "Got it, will review before retaking.",
-  "Completed all modules with mastery!",
-  "Can we discuss the quiz results?",
-  "I need more time on this topic.",
-  "The resources you sent were very helpful.",
-];
-
-function buildConversations(): Conversation[] {
-  return members.slice(0, 20).map((m, i) => ({
-    id: `c-${m.id}`,
-    memberId: m.id,
-    studentName: m.name,
-    studentInitials: m.initials,
-    lastMessage: sampleMessages[i % sampleMessages.length],
-    lastTimestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
-    unread: i < 2 ? i + 1 : 0,
-    online: i < 3,
-    messages: [
-      {
-        id: `m-${m.id}-1`,
-        senderId: "student",
-        text: sampleMessages[i % sampleMessages.length],
-        timestamp: new Date(Date.now() - 1000 * 60 * (5 + i * 30)),
-        isInstructor: false,
-      },
-    ],
-  }));
-}
-
-const formatTime = (date: Date) => {
+const formatTime = (iso: string) => {
+  const date = new Date(iso);
   const diff = Date.now() - date.getTime();
   if (diff < 1000 * 60 * 60) return `${Math.floor(diff / 60000)}m ago`;
   if (diff < 1000 * 60 * 60 * 24) return `${Math.floor(diff / 3600000)}h ago`;
@@ -73,26 +21,7 @@ const ChatPage = () => {
   const [searchParams] = useSearchParams();
   const targetMemberId = searchParams.get("member");
 
-  const [conversations, setConversations] = useState<Conversation[]>(() => {
-    const convs = buildConversations();
-    if (targetMemberId && !convs.find(c => c.memberId === targetMemberId)) {
-      const member = members.find(m => m.id === targetMemberId);
-      if (member) {
-        convs.unshift({
-          id: `c-${member.id}`,
-          memberId: member.id,
-          studentName: member.name,
-          studentInitials: member.initials,
-          lastMessage: "No messages yet",
-          lastTimestamp: new Date(),
-          unread: 0,
-          online: false,
-          messages: [],
-        });
-      }
-    }
-    return convs;
-  });
+  const [conversations, setConversations] = useState<Conversation[]>(() => chatStore.getConversations());
 
   const [selectedId, setSelectedId] = useState<string>(() => {
     if (targetMemberId) {
@@ -117,6 +46,13 @@ const ChatPage = () => {
   }, [selected?.messages.length]);
 
   useEffect(() => {
+    const unsub = chatStore.subscribe(() => {
+      setConversations(chatStore.getConversations());
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
     if (targetMemberId) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
@@ -124,85 +60,7 @@ const ChatPage = () => {
 
   const sendMessage = () => {
     if (!messageText.trim() || !selectedId) return;
-    const newMsg: Message = {
-      id: `m${Date.now()}`,
-      senderId: "instructor",
-      text: messageText.trim(),
-      timestamp: new Date(),
-      isInstructor: true,
-    };
-    setConversations(prev => prev.map(c =>
-      c.id === selectedId
-        ? { ...c, messages: [...c.messages, newMsg], lastMessage: newMsg.text, lastTimestamp: newMsg.timestamp }
-        : c
-    ));
-    setMessageText("");
-
-    setTimeout(() => {
-      const replies = [
-        "Thank you for reaching out!",
-        "I'll work on that right away.",
-        "That makes sense, thanks for explaining.",
-        "Can we discuss this further?",
-        "Got it, I appreciate the help!",
-      ];
-      const reply: Message = {
-        id: `m${Date.now() + 1}`,
-        senderId: "student",
-        text: replies[Math.floor(Math.random() * replies.length)],
-        timestamp: new Date(),
-        isInstructor: false,
-      };
-      setConversations(prev => prev.map(c =>
-        c.id === selectedId
-          ? { ...c, messages: [...c.messages, reply], lastMessage: reply.text, lastTimestamp: reply.timestamp }
-          : c
-      ));
-    }, 2000);
   };
-
-  const sendMassMessage = (memberIds: string[], text: string) => {
-    setConversations(prev => {
-      let updated = [...prev];
-      for (const memberId of memberIds) {
-        let conv = updated.find(c => c.memberId === memberId);
-        if (!conv) {
-          const member = members.find(m => m.id === memberId);
-          if (!member) continue;
-          conv = {
-            id: `c-${member.id}`,
-            memberId: member.id,
-            studentName: member.name,
-            studentInitials: member.initials,
-            lastMessage: "",
-            lastTimestamp: new Date(),
-            unread: 0,
-            online: false,
-            messages: [],
-          };
-          updated.push(conv);
-        }
-        const msg: Message = {
-          id: `m${Date.now()}-${memberId}`,
-          senderId: "instructor",
-          text,
-          timestamp: new Date(),
-          isInstructor: true,
-        };
-        updated = updated.map(c =>
-          c.memberId === memberId
-            ? { ...c, messages: [...c.messages, msg], lastMessage: msg.text, lastTimestamp: msg.timestamp }
-            : c
-        );
-      }
-      return updated;
-    });
-  };
-
-  useEffect(() => {
-    (window as any).__chatSendMassMessage = sendMassMessage;
-    return () => { delete (window as any).__chatSendMassMessage; };
-  });
 
   return (
     <div className="animate-fade-in h-[calc(100vh-8rem)]">

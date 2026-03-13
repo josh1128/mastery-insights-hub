@@ -72,6 +72,18 @@ export interface Intervention {
   createdAt: string;
 }
 
+export interface QuizResult {
+  id: string;
+  learnerId: string;
+  quizId: string;
+  courseId: string;
+  moduleId: string;
+  score: number;
+  averageConfidence: number | null;
+  isRetest: boolean;
+  submittedAt: string;
+}
+
 // Track which learners have completed which lectures
 export interface LectureCompletion {
   learnerId: string;
@@ -93,6 +105,7 @@ class ContentStore {
   private resources: Resource[] = [];
   private interventions: Intervention[] = [];
   private lectureCompletions: LectureCompletion[] = [];
+  private quizResults: QuizResult[] = [];
   private listeners: Set<Listener> = new Set();
   private initialized = false;
 
@@ -203,6 +216,47 @@ class ContentStore {
       this.lectureCompletions.push({ learnerId, lectureId, completedAt: new Date().toISOString() });
       this.notify();
     }
+  }
+
+  // Quiz results + mastery source of truth
+  recordQuizResult(result: QuizResult) {
+    // Remove any existing result from the same learner + quiz so latest wins
+    this.quizResults = this.quizResults.filter(
+      r => !(r.learnerId === result.learnerId && r.quizId === result.quizId),
+    );
+    this.quizResults.push(result);
+    this.notify();
+  }
+
+  /**
+   * Returns the most relevant quiz result for mastery for a learner in a course+module.
+   * If any retest exists, the latest retest replaces earlier attempts.
+   * Otherwise, the latest non-retest attempt is used.
+   */
+  getLatestQuizResultForModule(learnerId: string, courseId: string, moduleId: string): QuizResult | undefined {
+    const relevant = this.quizResults.filter(
+      r => r.learnerId === learnerId && r.courseId === courseId && r.moduleId === moduleId,
+    );
+    if (relevant.length === 0) return undefined;
+
+    const retests = relevant.filter(r => r.isRetest);
+    const pool = retests.length > 0 ? retests : relevant;
+    return pool.sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1))[0];
+  }
+
+  /**
+   * Resources explicitly assigned to a learner via interventions.
+   * These are visible only to the targeted learner(s).
+   */
+  getAssignedResourcesForLearner(learnerId: string, courseId?: string, moduleId?: string): Resource[] {
+    const interventionsForLearner = this.interventions.filter(
+      i => i.type === "resource" && i.targetLearnerIds.includes(learnerId),
+    );
+    const contentIds = new Set(interventionsForLearner.map(i => i.contentId).filter(Boolean) as string[]);
+    let res = this.resources.filter(r => contentIds.has(r.id));
+    if (courseId) res = res.filter(r => r.courseId === courseId);
+    if (moduleId) res = res.filter(r => r.moduleId === moduleId);
+    return res;
   }
 
   // Get all content for a module

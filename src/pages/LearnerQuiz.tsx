@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
 import { toast } from "sonner";
 
@@ -24,6 +24,15 @@ const confidenceOrder: ConfidenceLevel[] = ["not-sure", "unsure", "confident"];
 export default function LearnerQuiz() {
   const { quizId } = useParams();
   const quiz = contentStore.getQuiz(quizId || "");
+  const learnerId = "member-1"; // demo learner identifier used across learner views
+
+  const relatedLectures = quiz
+    ? contentStore.getVideoLecturesByModule(quiz.courseId, quiz.moduleId)
+    : [];
+  const hasRequiredLecture = relatedLectures.length > 0;
+  const hasCompletedAnyLecture =
+    hasRequiredLecture &&
+    relatedLectures.some((l) => contentStore.isLectureCompleted(learnerId, l.id));
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [confidences, setConfidences] = useState<Record<string, ConfidenceLevel>>({});
@@ -59,6 +68,31 @@ export default function LearnerQuiz() {
     const total = quiz.questions.length;
     const correct = quiz.questions.filter(q => answers[q.id] === q.correctAnswer).length;
     toast.success(`Quiz submitted! Score: ${correct}/${total}`);
+
+    const confidencesArray = Object.values(confidences).filter(Boolean) as ConfidenceLevel[];
+    const averageConfidence =
+      confidencesArray.length > 0
+        ? Math.round(
+            (confidencesArray.reduce((sum, level) => {
+              if (level === "not-sure") return sum + 20;
+              if (level === "unsure") return sum + 50;
+              return sum + 85;
+            }, 0) /
+              confidencesArray.length),
+          )
+        : null;
+
+    contentStore.recordQuizResult({
+      id: `qr-${Date.now()}`,
+      learnerId,
+      quizId: quiz.id,
+      courseId: quiz.courseId,
+      moduleId: quiz.moduleId,
+      score: Math.round((correct / total) * 100),
+      averageConfidence,
+      isRetest: !!quiz.isRetest,
+      submittedAt: new Date().toISOString(),
+    });
   };
 
   return (
@@ -81,6 +115,18 @@ export default function LearnerQuiz() {
           )}
         </div>
       </div>
+
+      {hasRequiredLecture && !hasCompletedAnyLecture && (
+        <div className="rounded-3xl border border-border/50 bg-accent/10 px-6 py-4 flex items-center gap-3">
+          <Lock className="h-4 w-4 text-primary" />
+          <div className="text-sm">
+            <p className="font-medium text-foreground">Quiz locked</p>
+            <p className="text-muted-foreground">
+              Complete the associated lecture for this module before taking the quiz.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-3xl bg-card/80 backdrop-blur-sm border border-border/40 p-6 md:p-8 space-y-8 shadow-glass">
         {quiz.questions.map((q, idx) => (
@@ -157,7 +203,12 @@ export default function LearnerQuiz() {
 
       {!submitted && (
         <div className="flex justify-center pb-8">
-          <Button size="lg" onClick={handleSubmit} className="px-10 rounded-full shadow-glow">
+          <Button
+            size="lg"
+            onClick={handleSubmit}
+            className="px-10 rounded-full shadow-glow"
+            disabled={hasRequiredLecture && !hasCompletedAnyLecture}
+          >
             Submit
           </Button>
         </div>

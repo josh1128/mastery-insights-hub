@@ -2,6 +2,7 @@
 // Single source of truth for all course content
 
 import { courses as courseDefs } from "@/data/courses";
+import { demoVideos, demoResources, demoQuizzes } from "@/data/democontent";
 
 export type QuestionType = "true-false" | "multiple-choice";
 
@@ -133,6 +134,17 @@ class ContentStore {
         });
       }
     }
+    if (this.quizzes.length === 0) {
+        this.quizzes = demoQuizzes;
+      }
+      
+      if (this.videoLectures.length === 0) {
+        this.videoLectures = demoVideos;
+      }
+      
+      if (this.resources.length === 0) {
+        this.resources = demoResources;
+      }
   }
 
   subscribe(listener: Listener) {
@@ -360,3 +372,4 @@ class ContentStore {
 }
 
 export const contentStore = new ContentStore();
+

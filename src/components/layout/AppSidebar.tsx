@@ -12,6 +12,8 @@ import {
   SidebarHeader, useSidebar,
 } from "@/components/ui/sidebar";
 
+import { Orbit } from "lucide-react";
+
 const mainItems = [
   { title: "Home", url: "/", icon: Home },
   { title: "Courses", url: "/courses", icon: BookOpen },
@@ -84,11 +86,11 @@ export function AppSidebar() {
           collapsed ? "justify-center" : "justify-start"
         )}>
           <div className="h-10 w-10 rounded-xl bg-[#7C3AED] flex items-center justify-center text-white shadow-sm shrink-0">
-            <Brain className="h-6 w-6" />
+            <Orbit className="h-6 w-6" />
           </div>
           {!collapsed && (
             <span className="text-xl font-bold text-[#1E293B] tracking-tight">
-              Nuvance
+              Disco Remix
             </span>
           )}
         </div>

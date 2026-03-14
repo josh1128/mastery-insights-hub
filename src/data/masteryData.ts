@@ -32,31 +32,34 @@ export const clusterColors: Record<ClusterName, string> = {
 };
 
 export const clusterMeta: Record<ClusterName, { icon: any; desc: string; characteristics: string; colorClass: string }> = {
-  mastery: { 
-    icon: Brain, 
-    desc: "Confident & Correct", 
-    characteristics: "Demonstrates deep understanding. Ready to advance to new topics or mentor peers.", 
-    colorClass: "text-success" 
-  },
-  overconfident: { 
-    icon: AlertTriangle, 
-    desc: "Confident & Wrong", 
-    characteristics: "High risk learner. Holds strong misconceptions that need active unlearning and targeted feedback.", 
-    colorClass: "text-destructive" 
-  },
-  underconfident: { 
-    icon: Eye, 
-    desc: "Unsure & Correct", 
-    characteristics: "Has the requisite knowledge but lacks self-belief. Needs positive reinforcement and practice.", 
-    colorClass: "text-chart-info" 
-  },
-  struggling: { 
-    icon: TrendingDown, 
-    desc: "Unsure & Wrong", 
-    characteristics: "Self-aware of their knowledge gaps. Needs foundational reteaching and step-by-step support.", 
-    colorClass: "text-warning" 
-  },
-};
+    mastery: { 
+      icon: Brain, 
+      desc: "Confident & Correct", 
+      characteristics: "Current signals show the learner answered correctly and reported high confidence. This may indicate solid understanding, though continued practice can help reinforce mastery.", 
+      colorClass: "text-success" 
+    },
+  
+    overconfident: { 
+      icon: AlertTriangle, 
+      desc: "Confident & Wrong", 
+      characteristics: "Current signals show the learner answered incorrectly while reporting high confidence. This pattern may suggest a possible misconception worth revisiting.", 
+      colorClass: "text-destructive" 
+    },
+  
+    underconfident: { 
+      icon: Eye, 
+      desc: "Unsure & Correct", 
+      characteristics: "Current signals show the learner answered correctly but reported low confidence. This may indicate emerging understanding that could benefit from reassurance or additional practice.", 
+      colorClass: "text-chart-info" 
+    },
+  
+    struggling: { 
+      icon: TrendingDown, 
+      desc: "Unsure & Wrong", 
+      characteristics: "Current signals show the learner answered incorrectly and reported low confidence. This pattern may indicate an area where additional support or review could help.", 
+      colorClass: "text-warning" 
+    }
+  };
 
 // --- Student data point ---
 export interface LearnerDataPoint {

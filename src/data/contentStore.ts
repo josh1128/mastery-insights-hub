@@ -123,6 +123,7 @@ class ContentStore {
   private ensureInit() {
     if (this.initialized) return;
     this.initialized = true;
+    this.loadFromDisk();
     for (const course of courseDefs) {
       for (const mod of course.modules) {
         this.modules.push({
@@ -171,28 +172,30 @@ class ContentStore {
   getQuizzesByModule(courseId: string, moduleId: string): Quiz[] { return this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId); }
   getQuiz(id: string): Quiz | undefined { return this.quizzes.find(q => q.id === id); }
 
-  addQuiz(quiz: Quiz) { this.quizzes.push(quiz); this.notify(); }
+  addQuiz(quiz: Quiz) { this.quizzes.push(quiz); this.notify(); this.saveToDisk(); }
 
   updateQuiz(id: string, updates: Partial<Quiz>) {
     this.quizzes = this.quizzes.map(q => q.id === id ? { ...q, ...updates } : q);
     this.notify();
+    this.saveToDisk();
   }
 
-  deleteQuiz(id: string) { this.quizzes = this.quizzes.filter(q => q.id !== id); this.notify(); }
+  deleteQuiz(id: string) { this.quizzes = this.quizzes.filter(q => q.id !== id); this.notify(); this.saveToDisk(); }
 
   // Video Lectures
   getVideoLectures(): VideoLecture[] { return this.videoLectures; }
   getVideoLecturesByModule(courseId: string, moduleId: string): VideoLecture[] { return this.videoLectures.filter(v => v.courseId === courseId && v.moduleId === moduleId); }
   getVideoLecture(id: string): VideoLecture | undefined { return this.videoLectures.find(v => v.id === id); }
 
-  addVideoLecture(lecture: VideoLecture) { this.videoLectures.push(lecture); this.notify(); }
+  addVideoLecture(lecture: VideoLecture) { this.videoLectures.push(lecture); this.notify(); this.saveToDisk(); }
 
   updateVideoLecture(id: string, updates: Partial<VideoLecture>) {
     this.videoLectures = this.videoLectures.map(v => v.id === id ? { ...v, ...updates } : v);
     this.notify();
+    this.saveToDisk();
   }
 
-  deleteVideoLecture(id: string) { this.videoLectures = this.videoLectures.filter(v => v.id !== id); this.notify(); }
+  deleteVideoLecture(id: string) { this.videoLectures = this.videoLectures.filter(v => v.id !== id); this.notify(); this.saveToDisk(); }
 
   // Resources
   getResources(): Resource[] { return this.resources; }
@@ -200,14 +203,15 @@ class ContentStore {
   getResource(id: string): Resource | undefined { return this.resources.find(r => r.id === id); }
   getResourcesByCourse(courseId: string): Resource[] { return this.resources.filter(r => r.courseId === courseId); }
 
-  addResource(resource: Resource) { this.resources.push(resource); this.notify(); }
+  addResource(resource: Resource) { this.resources.push(resource); this.notify(); this.saveToDisk(); }
 
   updateResource(id: string, updates: Partial<Resource>) {
     this.resources = this.resources.map(r => r.id === id ? { ...r, ...updates } : r);
     this.notify();
+    this.saveToDisk();
   }
 
-  deleteResource(id: string) { this.resources = this.resources.filter(r => r.id !== id); this.notify(); }
+  deleteResource(id: string) { this.resources = this.resources.filter(r => r.id !== id); this.notify(); this.saveToDisk(); }
 
   // Interventions
   getInterventions(): Intervention[] { return this.interventions; }
@@ -215,7 +219,28 @@ class ContentStore {
     return this.interventions.filter(i => i.targetLearnerIds.includes(learnerId));
   }
 
-  addIntervention(intervention: Intervention) { this.interventions.push(intervention); this.notify(); }
+  addIntervention(intervention: Intervention) { this.interventions.push(intervention); this.notify(); this.saveToDisk(); }
+
+  /** Retest quiz assigned to this learner for this course+module (from interventions). */
+  getAssignedRetestForLearner(learnerId: string, courseId: string, moduleId: string): Quiz | undefined {
+    const forLearner = this.interventions.filter(
+      i => i.type === "retest" && i.targetLearnerIds.includes(learnerId) && i.courseId === courseId && i.contentId
+    );
+    for (const int of forLearner) {
+      const quiz = this.getQuiz(int.contentId!);
+      if (quiz && quiz.moduleId === moduleId && quiz.isRetest) return quiz;
+    }
+    return undefined;
+  }
+
+  /** Instructor messages assigned to this learner for this course (from interventions). */
+  getAssignedMessagesForLearner(learnerId: string, courseId?: string): { text: string; id: string; courseId: string }[] {
+    let list = this.interventions.filter(
+      i => i.type === "message" && i.targetLearnerIds.includes(learnerId) && i.message
+    );
+    if (courseId) list = list.filter(i => i.courseId === courseId);
+    return list.map(i => ({ text: i.message!, id: i.id, courseId: i.courseId }));
+  }
 
   // Lecture completions
   getLectureCompletions(): LectureCompletion[] { return this.lectureCompletions; }
@@ -226,6 +251,7 @@ class ContentStore {
     if (!this.isLectureCompleted(learnerId, lectureId)) {
       this.lectureCompletions.push({ learnerId, lectureId, completedAt: new Date().toISOString() });
       this.notify();
+      this.saveToDisk();
     }
   }
 

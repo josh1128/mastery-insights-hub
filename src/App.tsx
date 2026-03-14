@@ -16,6 +16,9 @@ import { AutomationsPage } from "./pages/PlaceholderPages";
 import ContentPage from "./pages/ContentPage";
 import LearnerQuiz from "./pages/LearnerQuiz";
 import LearnerLecture from "./pages/LearnerLecture";
+import LearnerHome from "./pages/LearnerHome";
+import LearnerCoursesPage from "./pages/LearnerCourses";
+import LearnerMessages from "./pages/LearnerMessages";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +34,11 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/courses" element={<CoursesPage />} />
               <Route path="/courses/:id" element={<CourseDetail />} />
+              {/* Learner-mode routes */}
+              <Route path="/learner" element={<LearnerHome />} />
+              <Route path="/learner/courses" element={<LearnerCoursesPage />} />
+              <Route path="/learner/courses/:id" element={<CourseDetail />} />
+              <Route path="/learner/messages" element={<LearnerMessages />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/admin/members" element={<MembersPage />} />
               <Route path="/admin/content" element={<ContentPage />} />

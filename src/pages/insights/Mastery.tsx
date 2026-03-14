@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useReducer, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
@@ -14,6 +14,7 @@ import {
 import { courses } from "@/data/courses";
 import { ThresholdSettings } from "@/components/mastery/ThresholdSettings";
 import { ClusterBulkActions } from "@/components/mastery/ClusterBulkActions";
+import { contentStore } from "@/data/contentStore";
 
 // --- Custom Label Math for the Pie Chart ---
 const RADIAN = Math.PI / 180;
@@ -39,6 +40,12 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 const MasteryPage = () => {
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+  useEffect(() => {
+    const unsub = contentStore.subscribe(forceUpdate);
+    return () => unsub();
+  }, []);
+
   const [selectedCourse, setSelectedCourse] = useState(courses[0].id);
   const [selectedModule, setSelectedModule] = useState("all");
   const [thresholds, setThresholds] = useState<ThresholdConfig>(defaultThresholds);

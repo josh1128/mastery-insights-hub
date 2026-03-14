@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
+import { CURRENT_LEARNER_ID } from "@/lib/learnerIdentity";
 
 export default function LearnerLecture() {
   const { lectureId } = useParams();
@@ -15,7 +16,7 @@ export default function LearnerLecture() {
     const video = videoRef.current;
     const handleEnded = () => {
       setCompleted(true);
-      contentStore.completeLecture("demo-learner", lecture.id);
+      contentStore.completeLecture(CURRENT_LEARNER_ID, lecture.id);
     };
     video.addEventListener("ended", handleEnded);
     return () => video.removeEventListener("ended", handleEnded);
@@ -24,8 +25,8 @@ export default function LearnerLecture() {
   if (!lecture) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <Link to="/admin/content" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+        <Link to="/learner/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Courses
         </Link>
         <p className="text-muted-foreground">Lecture not found.</p>
       </div>
@@ -34,8 +35,8 @@ export default function LearnerLecture() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      <Link to="/admin/content" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4 mr-1" /> Back to Content
+      <Link to={`/learner/courses/${lecture.courseId}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4 mr-1" /> Back to Course
       </Link>
 
       <div className="bg-card/90 backdrop-blur-sm rounded-3xl border border-border/40 overflow-hidden shadow-glass">
@@ -65,7 +66,7 @@ export default function LearnerLecture() {
           {!completed && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Watch the full lecture to unlock the quiz.</p>
-              <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setCompleted(true); contentStore.completeLecture("demo-learner", lecture.id); }}>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setCompleted(true); contentStore.completeLecture(CURRENT_LEARNER_ID, lecture.id); }}>
                 Mark as Complete
               </Button>
             </div>

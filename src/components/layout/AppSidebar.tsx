@@ -18,6 +18,12 @@ const mainItems = [
   { title: "Chat", url: "/chat", icon: MessageCircle },
 ];
 
+const learnerItems = [
+  { title: "Learner Home", url: "/learner", icon: Home },
+  { title: "My Courses", url: "/learner/courses", icon: BookOpen },
+  { title: "Messages", url: "/learner/messages", icon: MessageCircle },
+];
+
 const adminItems = [
   { title: "Members", url: "/admin/members", icon: Users },
   { title: "Content", url: "/admin/content", icon: FileText },
@@ -32,6 +38,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const isLearnerMode = location.pathname.startsWith("/learner") || location.pathname.startsWith("/learn/");
   const checkActive = (path: string) => location.pathname === path;
 
   const renderItems = (items: typeof mainItems) => (
@@ -95,29 +102,37 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="px-2">
-        <SidebarGroup>
-          <SidebarGroupContent>{renderItems(mainItems)}</SidebarGroupContent>
-        </SidebarGroup>
+        {isLearnerMode ? (
+          <SidebarGroup>
+            <SidebarGroupContent>{renderItems(learnerItems)}</SidebarGroupContent>
+          </SidebarGroup>
+        ) : (
+          <>
+            <SidebarGroup>
+              <SidebarGroupContent>{renderItems(mainItems)}</SidebarGroupContent>
+            </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          {!collapsed && (
-            /* ALIGNMENT FIX: Set px-3 here to perfectly match the NavLink padding */
-            <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-widest text-[#94A3B8] font-bold mb-2">
-              Manage
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>{renderItems(adminItems)}</SidebarGroupContent>
-        </SidebarGroup>
+            <SidebarGroup className="mt-4">
+              {!collapsed && (
+                /* ALIGNMENT FIX: Set px-3 here to perfectly match the NavLink padding */
+                <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-widest text-[#94A3B8] font-bold mb-2">
+                  Manage
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>{renderItems(adminItems)}</SidebarGroupContent>
+            </SidebarGroup>
 
-        <SidebarGroup className="mt-4">
-          {!collapsed && (
-            /* ALIGNMENT FIX: Set px-3 here to perfectly match the NavLink padding */
-            <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-widest text-[#94A3B8] font-bold mb-2">
-              Insights
-            </SidebarGroupLabel>
-          )}
-          <SidebarGroupContent>{renderItems(insightItems)}</SidebarGroupContent>
-        </SidebarGroup>
+            <SidebarGroup className="mt-4">
+              {!collapsed && (
+                /* ALIGNMENT FIX: Set px-3 here to perfectly match the NavLink padding */
+                <SidebarGroupLabel className="px-3 text-[11px] uppercase tracking-widest text-[#94A3B8] font-bold mb-2">
+                  Insights
+                </SidebarGroupLabel>
+              )}
+              <SidebarGroupContent>{renderItems(insightItems)}</SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
     </Sidebar>
   );

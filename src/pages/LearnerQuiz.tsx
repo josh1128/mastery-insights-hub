@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
+import { CURRENT_LEARNER_ID } from "@/lib/learnerIdentity";
 
 type ConfidenceLevel = "not-sure" | "unsure" | "confident" | null;
 
@@ -23,7 +24,7 @@ const confidenceOrder: ConfidenceLevel[] = ["not-sure", "unsure", "confident"];
 export default function LearnerQuiz() {
   const { quizId } = useParams();
   const quiz = contentStore.getQuiz(quizId || "");
-  const learnerId = "member-1";
+  const learnerId = CURRENT_LEARNER_ID;
 
   const relatedLectures = quiz
     ? contentStore.getVideoLecturesByModule(quiz.courseId, quiz.moduleId)
@@ -47,7 +48,7 @@ export default function LearnerQuiz() {
         </div>
         <h1 className="text-2xl font-bold text-foreground">{quiz.title}</h1>
         <p className="text-muted-foreground">Complete all lectures in this module first</p>
-        <Link to="/courses">
+        <Link to="/learner/courses">
           <Button variant="outline" className="rounded-full">Back to Courses</Button>
         </Link>
       </div>
@@ -127,6 +128,7 @@ export default function LearnerQuiz() {
   // Completion Screen
   if (submitted) {
     const quizScore = quiz.questions.filter((q) => answers[q.id] === q.correctAnswer).length;
+    const scorePercent = Math.round((quizScore / quiz.questions.length) * 100);
     const confidencePercent = Math.round(
       (Object.values(confidences).filter(Boolean) as ConfidenceLevel[]).reduce((sum, level) => {
         if (level === "not-sure") return sum + 20;
@@ -134,6 +136,13 @@ export default function LearnerQuiz() {
         return sum + 85;
       }, 0) / quiz.questions.length
     );
+    // Mastery = 50% assessment + 50% confidence
+    const masteryPercent = Math.round((scorePercent + confidencePercent) / 2);
+
+    const assignedResources = contentStore.getAssignedResourcesForLearner(learnerId, quiz.courseId, quiz.moduleId);
+    const assignedRetest = contentStore.getAssignedRetestForLearner(learnerId, quiz.courseId, quiz.moduleId);
+    const assignedMessages = contentStore.getAssignedMessagesForLearner(learnerId, quiz.courseId);
+    const hasActionItems = assignedResources.length > 0 || !!assignedRetest || assignedMessages.length > 0;
 
     return (
       <div className="max-w-2xl mx-auto space-y-8 animate-fade-in py-8">
@@ -145,16 +154,63 @@ export default function LearnerQuiz() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Correctness</p>
-            <p className="text-4xl font-black text-slate-900">{Math.round((quizScore / quiz.questions.length) * 100)}%</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Quiz score</p>
+            <p className="text-4xl font-black text-slate-900">{scorePercent}%</p>
           </div>
           <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg Confidence</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Confidence score</p>
             <p className="text-4xl font-black text-slate-900">{confidencePercent}%</p>
           </div>
         </div>
-        <div className="flex justify-center">
-          <Link to="/courses"><Button variant="outline" className="rounded-full px-8">Return Home</Button></Link>
+        <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Mastery score</p>
+          <p className="text-2xl font-bold text-slate-900">{masteryPercent}%</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            50% quiz performance + 50% confidence
+          </p>
+        </div>
+
+        {hasActionItems && (
+          <div className="rounded-[2rem] border border-primary/20 bg-primary/5 p-6 space-y-4">
+            <p className="text-sm font-semibold text-slate-900">Action items from your instructor</p>
+            <p className="text-xs text-muted-foreground">
+              Your instructor has shared the following for you:
+            </p>
+            <div className="space-y-3">
+              {assignedMessages.map((m) => (
+                <div key={m.id} className="rounded-lg border border-primary/20 bg-white p-3 text-sm">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Message</p>
+                  <p className="text-foreground">{m.text}</p>
+                </div>
+              ))}
+              {assignedResources.map((r) => (
+                <div key={r.id} className="flex items-center justify-between rounded-lg border border-primary/20 bg-white p-3">
+                  <span className="text-sm font-medium">{r.title}</span>
+                  <span className="text-xs text-muted-foreground">{r.fileType.toUpperCase()}</span>
+                </div>
+              ))}
+              {assignedRetest && (
+                <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-white p-3">
+                  <span className="text-sm font-medium">{assignedRetest.title}</span>
+                  <Link to={`/learn/quiz/${assignedRetest.id}`}>
+                    <Button size="sm" variant="default" className="rounded-full">Take retest</Button>
+                  </Link>
+                </div>
+              )}
+            </div>
+            <Link to={`/learner/courses/${quiz.courseId}`}>
+              <Button variant="default" size="sm" className="rounded-full">
+                View course
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        <div className="flex flex-col items-center gap-3">
+          <Link to={`/learner/courses/${quiz.courseId}`}>
+            <Button variant="default" className="rounded-full px-8">Back to Course</Button>
+          </Link>
+          <Link to="/learner/courses"><Button variant="outline" className="rounded-full px-8">All Courses</Button></Link>
         </div>
       </div>
     );

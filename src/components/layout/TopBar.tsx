@@ -1,38 +1,37 @@
-import { Search, Bell, HelpCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
+import { GraduationCap } from "lucide-react";
+import { Button } from "@/components/ui/button"; 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export function TopBar() {
+export const TopBar = () => {
+  const navigate = useNavigate();
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-slate-200 bg-white/95 backdrop-blur-sm px-6">
-      <SidebarTrigger className="mr-1 sm:mr-2 shrink-0" />
-      
-      {/* Search Container */}
-      <div className="flex-1 min-w-0 max-w-xl">
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search anything..."
-            className="w-full pl-10 bg-muted/40 border-0 h-9 sm:h-10 text-sm sm:text-base rounded-full focus:bg-card focus:shadow-sm transition-all"
-          />
-        </div>
-      </div>
-      
-      {/* Action Buttons - Notice the 'ml-auto' added here! */}
-      <div className="ml-auto flex items-center gap-1 sm:gap-3 shrink-0">
-        <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full hover:bg-slate-100">
-          <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+    <header className="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-30 px-8 flex items-center justify-between">
+      <div className="text-sm font-medium text-slate-500">Instructor Dashboard</div>
+
+      <div className="flex items-center gap-4">
+        {/* Now this will work because it's using the real Button component */}
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate("/learner/dashboard")}
+          className="flex items-center gap-2 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold rounded-full px-4 h-9 transition-all active:scale-95"
+        >
+          <GraduationCap className="h-4 w-4" />
+          <span className="text-xs uppercase tracking-wider">Switch to Learner</span>
         </Button>
-        
-        <Button variant="ghost" size="icon" className="hidden sm:inline-flex text-muted-foreground rounded-full hover:bg-slate-100">
-          <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-        </Button>
-        
-        <div className="ml-1 sm:ml-2 h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full bg-slate-900 flex items-center justify-center text-xs font-bold text-white">
-          JD
+
+        <div className="flex items-center gap-3 pl-2 border-l border-slate-100">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs font-bold text-slate-900 leading-none">Josh</p>
+            <p className="text-[10px] text-slate-400 mt-1">Instructor</p>
+          </div>
+          <Avatar className="h-9 w-9 border-2 border-white shadow-sm ring-1 ring-slate-100">
+            <AvatarImage src="/josh-avatar.png" />
+            <AvatarFallback className="bg-indigo-600 text-white text-xs font-bold">J</AvatarFallback>
+          </Avatar>
         </div>
       </div>
     </header>
   );
-}
+};

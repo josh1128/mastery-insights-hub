@@ -3,34 +3,26 @@ import { useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Send, Circle } from "lucide-react";
+import { Send } from "lucide-react";
 import { chatStore, Conversation } from "@/data/chatStore";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
 
 const formatTime = (iso: string) => {
   const date = new Date(iso);
   const diff = Date.now() - date.getTime();
-  if (diff < 1000 * 60 * 60) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 1000 * 60 * 60 * 24) return `${Math.floor(diff / 3600000)}h ago`;
-  return date.toLocaleDateString();
+  if (diff < 60000) return 'Now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 };
 
 const ChatPage = () => {
   const [searchParams] = useSearchParams();
   const targetMemberId = searchParams.get("member");
-
   const [conversations, setConversations] = useState<Conversation[]>(() => chatStore.getConversations());
-
-  const [selectedId, setSelectedId] = useState<string>(() => {
-    if (targetMemberId) {
-      const conv = conversations.find(c => c.memberId === targetMemberId);
-      if (conv) return conv.id;
-    }
-    return conversations[0]?.id || "";
-  });
-
+  const [selectedId, setSelectedId] = useState<string>("");
   const [messageText, setMessageText] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -42,99 +34,66 @@ const ChatPage = () => {
   );
 
   useEffect(() => {
+    if (targetMemberId) {
+      const conv = conversations.find(c => c.memberId === targetMemberId);
+      if (conv) setSelectedId(conv.id);
+    } else if (conversations.length > 0 && !selectedId) {
+      setSelectedId(conversations[0].id);
+    }
+  }, [targetMemberId, conversations]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selected?.messages.length]);
 
-  useEffect(() => {
-    const unsub = chatStore.subscribe(() => {
-      setConversations(chatStore.getConversations());
-    });
-    return () => { unsub(); };
-  }, []);
-
-  useEffect(() => {
-    if (targetMemberId) {
-      setTimeout(() => inputRef.current?.focus(), 300);
-    }
-  }, [targetMemberId]);
-
   const sendMessage = () => {
     if (!messageText.trim() || !selectedId) return;
+    setMessageText("");
   };
 
   return (
-    <div className="animate-fade-in h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Chat</h1>
-          <p className="text-muted-foreground text-sm mt-1">Message your learners directly</p>
-        </div>
+    <div className="h-[calc(100vh-140px)] flex flex-col animate-fade-in w-full max-w-full overflow-hidden">
+      <div className="mb-4 flex-shrink-0">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Messages</h1>
+        <p className="text-slate-500 text-sm">Direct communication with your learners</p>
       </div>
 
-      <Card className="h-[calc(100%-5rem)] flex overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 border-r border-border/30 flex flex-col bg-card/50">
-          <div className="p-3 border-b border-border/30">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search conversations..." className="pl-8 h-9 rounded-full bg-muted/40 border-0"
-                value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            </div>
-          </div>
-          <ScrollArea className="flex-1">
-            {filteredConversations.map(conv => (
-              <button key={conv.id}
-                className={`w-full text-left p-3 border-b border-border/20 transition-colors hover:bg-slate-50 ${selectedId === conv.id ? "bg-indigo-50" : ""}`}
-                onClick={() => { setSelectedId(conv.id); setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread: 0 } : c)); }}>
-                <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="text-xs bg-gradient-to-br from-primary/15 to-primary-glow/15 text-primary">{conv.studentInitials}</AvatarFallback>
-                    </Avatar>
-                    {conv.online && <Circle className="absolute -bottom-0.5 -right-0.5 h-3 w-3 fill-success text-success" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground">{conv.studentName}</span>
-                      <span className="text-[10px] text-muted-foreground">{formatTime(conv.lastTimestamp)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{conv.lastMessage}</p>
-                  </div>
-                  {conv.unread > 0 && (
-                    <Badge className="h-5 w-5 p-0 flex items-center justify-center text-[10px] rounded-full shadow-glow">{conv.unread}</Badge>
-                  )}
-                </div>
-              </button>
-            ))}
-          </ScrollArea>
-        </div>
+      {/* FIXED: Added w-full and overflow-hidden here */}
+      <Card className="flex-1 flex w-full overflow-hidden border-slate-200/60 shadow-sm rounded-xl relative">
+        <ChatSidebar 
+          conversations={filteredConversations}
+          selectedId={selectedId}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onSelectConversation={setSelectedId}
+          formatTime={formatTime}
+        />
 
-        {/* Chat area */}
+        {/* Main Chat Window: Added min-w-0 to prevent it from pushing the sidebar */}
         {selected ? (
-          <div className="flex-1 flex flex-col">
-            <div className="p-4 border-b border-border/30 flex items-center gap-3 bg-card/40 backdrop-blur-sm">
+          <div className="flex-1 min-w-0 flex flex-col bg-white overflow-hidden">
+            {/* Chat Header */}
+            <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-white/80 backdrop-blur-md z-10 flex-shrink-0">
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="text-xs bg-gradient-to-br from-primary/15 to-primary-glow/15 text-primary">{selected.studentInitials}</AvatarFallback>
+                <AvatarFallback className="bg-indigo-50 text-indigo-600 font-bold text-xs">
+                  {selected.studentInitials}
+                </AvatarFallback>
               </Avatar>
-              <div>
-                <p className="text-sm font-semibold text-foreground">{selected.studentName}</p>
-                <p className="text-xs text-muted-foreground">{selected.online ? "Online" : "Offline"}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-900 truncate">{selected.studentName}</p>
+                <p className="text-[10px] text-emerald-500 uppercase tracking-widest font-bold">
+                  {selected.online ? "• Active" : ""}
+                </p>
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
+            {/* Messages Area */}
+            <ScrollArea className="flex-1 p-4 bg-slate-50/20">
+              <div className="space-y-4 max-w-3xl mx-auto">
                 {selected.messages.map(msg => (
                   <div key={msg.id} className={`flex ${msg.isInstructor ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
-                      msg.isInstructor
-                        ? "bg-gradient-to-r from-primary to-primary-glow text-primary-foreground rounded-br-md shadow-glow"
-                        : "bg-accent/60 text-accent-foreground rounded-bl-md backdrop-blur-sm"
-                    }`}>
-                      <p className="text-sm">{msg.text}</p>
-                      <p className={`text-[10px] mt-1 ${msg.isInstructor ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                        {formatTime(msg.timestamp)}
-                      </p>
+                    <div className={`max-w-[85%] ${msg.isInstructor ? "bg-indigo-600 text-white rounded-2xl rounded-tr-none" : "bg-white border border-slate-200 text-slate-900 rounded-2xl rounded-tl-none"} px-4 py-2 text-sm shadow-sm`}>
+                      {msg.text}
                     </div>
                   </div>
                 ))}
@@ -142,18 +101,26 @@ const ChatPage = () => {
               </div>
             </ScrollArea>
 
-            <div className="p-3 border-t border-border/30 bg-card/40 backdrop-blur-sm">
-              <div className="flex gap-2">
-                <Input ref={inputRef} placeholder="Type a message..." className="flex-1 rounded-full bg-muted/40 border-0"
-                  value={messageText} onChange={e => setMessageText(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter") sendMessage(); }} />
-                <Button onClick={sendMessage} size="icon" className="rounded-full shadow-glow"><Send className="h-4 w-4" /></Button>
+            {/* Input Area */}
+            <div className="p-4 bg-white border-t border-slate-100 flex-shrink-0">
+              <div className="flex gap-2 bg-slate-50 border border-slate-200 p-1 rounded-full px-4 items-center">
+                <Input 
+                  ref={inputRef}
+                  placeholder="Message..." 
+                  className="flex-1 border-0 bg-transparent focus-visible:ring-0 text-sm h-10"
+                  value={messageText} 
+                  onChange={e => setMessageText(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && sendMessage()} 
+                />
+                <Button onClick={sendMessage} size="icon" className="rounded-full h-8 w-8 bg-indigo-600 shrink-0">
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            Select a conversation to start messaging
+          <div className="flex-1 flex items-center justify-center bg-slate-50/50 text-slate-400">
+            Select a learner to start chatting
           </div>
         )}
       </Card>

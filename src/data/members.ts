@@ -11,7 +11,10 @@ export interface Member {
   enrolledCourseIds: string[];
 }
 
-// Deterministic seeded RNG
+/**
+ * Deterministic seeded RNG to ensure member data stays 
+ * consistent across page refreshes.
+ */
 function seededRng(seed: number) {
   return () => {
     seed = Math.sin(seed) * 10000;
@@ -45,20 +48,36 @@ function generateMembers(): Member[] {
   const rng = seededRng(42);
   const result: Member[] = [];
 
-  for (let i = 0; i < 150; i++) {
+  // --- 1. MANUALLY INJECT MARCUS SMITH (The Primary Test Learner) ---
+  result.push({
+    id: "member-marcus",
+    name: "Marcus Smith",
+    email: "marcus.smith@student.ubc.ca",
+    role: "learner",
+    initials: "MS",
+    joinDate: "2026-03-01",
+    // Marcus is only in the first course to start with
+    enrolledCourseIds: [courses[0].id], 
+  });
+
+  // --- 2. GENERATE THE REMAINING 149 MEMBERS ---
+  for (let i = 0; i < 149; i++) {
     const first = firstNames[Math.floor(rng() * firstNames.length)];
     const last = lastNames[Math.floor(rng() * lastNames.length)];
     const name = `${first} ${last}`;
     const initials = `${first[0]}${last[0]}`;
     const email = `${first.toLowerCase()}.${last.toLowerCase()}${i}@company.com`;
 
-    // Most learners enrolled in both courses, some in just one
     const r = rng();
-    const enrolledCourseIds = r < 0.7
-      ? courses.map(c => c.id)
-      : r < 0.85
-        ? [courses[0].id]
-        : [courses[1].id];
+    // Logic to ensure unique course IDs are assigned
+    let enrolledCourseIds: string[] = [];
+    if (r < 0.7) {
+      enrolledCourseIds = courses.map(c => c.id); // Enrolled in all
+    } else if (r < 0.85) {
+      enrolledCourseIds = [courses[0].id]; // Just the first course
+    } else {
+      enrolledCourseIds = [courses[1].id]; // Just the second course
+    }
 
     const month = Math.floor(rng() * 6) + 1;
     const day = Math.floor(rng() * 28) + 1;
@@ -80,15 +99,16 @@ function generateMembers(): Member[] {
 export const members: Member[] = generateMembers();
 
 /**
- * Returns {score, confidence} for a member on a specific course+module.
- * Deterministic but varies across modules so learners appear in different clusters.
+ * Logic to fetch data for the 2x2 Mastery Matrix.
+ * Returns {score, confidence} for a specific student.
  */
 export function getMemberModuleData(
   memberId: string,
   courseId: string,
   moduleId: string
 ): { score: number; confidence: number } {
-  // If we have real quiz results (including possible retests), use them instead
+  
+  // A. Check contentStore for REAL results first (The "Source of Truth")
   const latest = contentStore.getLatestQuizResultForModule(memberId, courseId, moduleId);
   if (latest) {
     return {
@@ -97,15 +117,18 @@ export function getMemberModuleData(
     };
   }
 
-  // Create a unique seed from the combination
+  // B. Hardcode Marcus' baseline "Struggling" state for instructor view
+  if (memberId === "member-marcus") {
+    return { score: 0, confidence: 0 };
+  }
+
+  // C. Fallback: Generate deterministic RNG data for all other members
   let seed = 0;
   for (let i = 0; i < memberId.length; i++) seed += memberId.charCodeAt(i) * (i + 1);
   for (let i = 0; i < courseId.length; i++) seed += courseId.charCodeAt(i) * (i + 3);
   for (let i = 0; i < moduleId.length; i++) seed += moduleId.charCodeAt(i) * (i + 7);
 
   const rng = seededRng(seed);
-
-  // Generate score and confidence with clustering tendencies suitable for the new 2x2 matrix
   const archetype = rng();
   let score: number, confidence: number;
 
@@ -126,7 +149,7 @@ export function getMemberModuleData(
     score = 10 + rng() * 40;
     confidence = 10 + rng() * 40;
   } else {
-    // Middle spread (around threshold transition zone)
+    // Middle spread
     score = 40 + rng() * 30;
     confidence = 40 + rng() * 30;
   }

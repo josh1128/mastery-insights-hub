@@ -1,6 +1,4 @@
 // Central content store for modules, quizzes, video lectures, resources, and interventions
-// Single source of truth for all course content
-
 import { courses as courseDefs } from "@/data/courses";
 import { demoVideos, demoResources, demoQuizzes } from "@/data/democontent";
 
@@ -25,9 +23,34 @@ export interface Quiz {
   isRetest?: boolean;
 }
 
-export interface ConfidenceCheckpoint {
+export interface QuizResult {
   id: string;
-  timestampSeconds: number;
+  learnerId: string;
+  quizId: string;
+  courseId: string;
+  moduleId: string;
+  score: number;
+  averageConfidence: number | null;
+  isRetest: boolean;
+  submittedAt: string;
+}
+
+// ... (Rest of your interfaces: VideoLecture, CourseModule, Resource, etc. stay the same)
+
+export interface Resource {
+  id: string;
+  title: string;
+  courseId: string;
+  moduleId: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  isOptional: boolean;
+  createdAt: string;
+}
+
+export interface ConfidenceCheckpoint {
+  timestamp: number;
   prompt: string;
 }
 
@@ -49,56 +72,30 @@ export interface CourseModule {
   createdAt: string;
 }
 
-export interface Resource {
-  id: string;
-  title: string;
-  courseId: string;
-  moduleId: string;
-  fileName: string;
-  fileUrl: string;
-  fileType: string; // pdf, docx, etc.
-  isOptional: boolean;
-  createdAt: string;
-}
-
 export type InterventionType = "retest" | "resource" | "extra-quiz" | "message";
 
 export interface Intervention {
   id: string;
   type: InterventionType;
   targetLearnerIds: string[];
-  contentId?: string; // quiz id, resource id, etc.
+  contentId?: string;
   message?: string;
   courseId: string;
   createdAt: string;
 }
 
-export interface QuizResult {
-  id: string;
-  learnerId: string;
-  quizId: string;
-  courseId: string;
-  moduleId: string;
-  score: number;
-  averageConfidence: number | null;
-  isRetest: boolean;
-  submittedAt: string;
-}
-
-// Track which learners have completed which lectures
 export interface LectureCompletion {
   learnerId: string;
   lectureId: string;
   completedAt: string;
 }
 
-// Track teach-back scores for mastery integration
 export interface TeachBackScore {
   learnerId: string;
   quizId: string;
   courseId: string;
   moduleId: string;
-  score: number; // 0-100
+  score: number;
   completedAt: string;
 }
 
@@ -118,33 +115,35 @@ class ContentStore {
   private lectureCompletions: LectureCompletion[] = [];
   private quizResults: QuizResult[] = [];
   private teachBackScores: TeachBackScore[] = [];
+  // Per-learner enrollments so we can persist Marcus' catalog state
+  private learnerEnrollments: Record<string, string[]> = {};
   private listeners: Set<Listener> = new Set();
   private initialized = false;
 
   private ensureInit() {
     if (this.initialized) return;
     this.initialized = true;
-    for (const course of courseDefs) {
-      for (const mod of course.modules) {
-        this.modules.push({
-          id: mod.id,
-          courseId: course.id,
-          name: mod.name,
-          createdAt: new Date().toISOString(),
-        });
+    
+    // FIRST: Load any previously saved data from Marcus's sessions
+    this.loadFromDisk();
+
+    // SECOND: Load defaults if nothing was in disk
+    if (this.modules.length === 0) {
+      for (const course of courseDefs) {
+        for (const mod of course.modules) {
+          this.modules.push({
+            id: mod.id,
+            courseId: course.id,
+            name: mod.name,
+            createdAt: new Date().toISOString(),
+          });
+        }
       }
     }
-    if (this.quizzes.length === 0) {
-        this.quizzes = demoQuizzes;
-      }
-      
-      if (this.videoLectures.length === 0) {
-        this.videoLectures = demoVideos;
-      }
-      
-      if (this.resources.length === 0) {
-        this.resources = demoResources;
-      }
+    
+    if (this.quizzes.length === 0) this.quizzes = demoQuizzes;
+    if (this.videoLectures.length === 0) this.videoLectures = demoVideos;
+    if (this.resources.length === 0) this.resources = demoResources;
   }
 
   subscribe(listener: Listener) {
@@ -156,92 +155,8 @@ class ContentStore {
     this.listeners.forEach(fn => fn());
   }
 
-  // Modules
-  getModules(): CourseModule[] { this.ensureInit(); return this.modules; }
-  getModulesByCourse(courseId: string): CourseModule[] { this.ensureInit(); return this.modules.filter(m => m.courseId === courseId); }
-  getModule(id: string): CourseModule | undefined { this.ensureInit(); return this.modules.find(m => m.id === id); }
+  // --- PERSISTENCE LOGIC ---
 
-  addModule(mod: CourseModule) { this.ensureInit(); this.modules.push(mod); this.notify(); }
-
-  updateModule(id: string, updates: Partial<CourseModule>) {
-    this.ensureInit();
-    this.modules = this.modules.map(m => m.id === id ? { ...m, ...updates } : m);
-    this.notify();
-  }
-
-  deleteModule(id: string) {
-    this.ensureInit();
-    this.modules = this.modules.filter(m => m.id !== id);
-    this.quizzes = this.quizzes.filter(q => q.moduleId !== id);
-    this.videoLectures = this.videoLectures.filter(v => v.moduleId !== id);
-    this.resources = this.resources.filter(r => r.moduleId !== id);
-    this.notify();
-  }
-
-  // Quizzes
-  getQuizzes(): Quiz[] { return this.quizzes; }
-  getQuizzesByModule(courseId: string, moduleId: string): Quiz[] { return this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId); }
-  getQuiz(id: string): Quiz | undefined { return this.quizzes.find(q => q.id === id); }
-
-  addQuiz(quiz: Quiz) { this.quizzes.push(quiz); this.notify(); }
-
-  updateQuiz(id: string, updates: Partial<Quiz>) {
-    this.quizzes = this.quizzes.map(q => q.id === id ? { ...q, ...updates } : q);
-    this.notify();
-  }
-
-  deleteQuiz(id: string) { this.quizzes = this.quizzes.filter(q => q.id !== id); this.notify(); }
-
-  // Video Lectures
-  getVideoLectures(): VideoLecture[] { return this.videoLectures; }
-  getVideoLecturesByModule(courseId: string, moduleId: string): VideoLecture[] { return this.videoLectures.filter(v => v.courseId === courseId && v.moduleId === moduleId); }
-  getVideoLecture(id: string): VideoLecture | undefined { return this.videoLectures.find(v => v.id === id); }
-
-  addVideoLecture(lecture: VideoLecture) { this.videoLectures.push(lecture); this.notify(); }
-
-  updateVideoLecture(id: string, updates: Partial<VideoLecture>) {
-    this.videoLectures = this.videoLectures.map(v => v.id === id ? { ...v, ...updates } : v);
-    this.notify();
-  }
-
-  deleteVideoLecture(id: string) { this.videoLectures = this.videoLectures.filter(v => v.id !== id); this.notify(); }
-
-  // Resources
-  getResources(): Resource[] { return this.resources; }
-  getResourcesByModule(courseId: string, moduleId: string): Resource[] { return this.resources.filter(r => r.courseId === courseId && r.moduleId === moduleId); }
-  getResource(id: string): Resource | undefined { return this.resources.find(r => r.id === id); }
-  getResourcesByCourse(courseId: string): Resource[] { return this.resources.filter(r => r.courseId === courseId); }
-
-  addResource(resource: Resource) { this.resources.push(resource); this.notify(); }
-
-  updateResource(id: string, updates: Partial<Resource>) {
-    this.resources = this.resources.map(r => r.id === id ? { ...r, ...updates } : r);
-    this.notify();
-  }
-
-  deleteResource(id: string) { this.resources = this.resources.filter(r => r.id !== id); this.notify(); }
-
-  // Interventions
-  getInterventions(): Intervention[] { return this.interventions; }
-  getInterventionsForLearner(learnerId: string): Intervention[] {
-    return this.interventions.filter(i => i.targetLearnerIds.includes(learnerId));
-  }
-
-  addIntervention(intervention: Intervention) { this.interventions.push(intervention); this.notify(); }
-
-  // Lecture completions
-  getLectureCompletions(): LectureCompletion[] { return this.lectureCompletions; }
-  isLectureCompleted(learnerId: string, lectureId: string): boolean {
-    return this.lectureCompletions.some(c => c.learnerId === learnerId && c.lectureId === lectureId);
-  }
-  completeLecture(learnerId: string, lectureId: string) {
-    if (!this.isLectureCompleted(learnerId, lectureId)) {
-      this.lectureCompletions.push({ learnerId, lectureId, completedAt: new Date().toISOString() });
-      this.notify();
-    }
-  }
-
-  // Save all current data to LocalStorage to persist across refreshes
   private saveToDisk() {
     try {
       const data = {
@@ -252,15 +167,15 @@ class ContentStore {
         lectureCompletions: this.lectureCompletions,
         quizResults: this.quizResults,
         teachBackScores: this.teachBackScores,
+        learnerEnrollments: this.learnerEnrollments,
       };
       localStorage.setItem("mastery_hub_data", JSON.stringify(data));
-      this.notify(); // Ensure UI updates across all components
+      this.notify();
     } catch (e) {
       console.error("Failed to save data to disk", e);
     }
   }
 
-  // You also need a method to LOAD that data when the app starts
   private loadFromDisk() {
     try {
       const saved = localStorage.getItem("mastery_hub_data");
@@ -273,103 +188,338 @@ class ContentStore {
         this.lectureCompletions = data.lectureCompletions || [];
         this.quizResults = data.quizResults || [];
         this.teachBackScores = data.teachBackScores || [];
+        this.learnerEnrollments = data.learnerEnrollments || {};
       }
     } catch (e) {
-      console.warn("Could not load data from disk, starting fresh.");
+      console.warn("Could not load data from disk.");
     }
   }
-  
-  // Quiz results + mastery source of truth
+
+  // --- MASTERY & RESULTS ---
+
+  /**
+   * FIXED: This method now exists to match your MarcusDashboard call.
+   */
+  saveQuizResult(learnerId: string, courseId: string, moduleId: string, data: { score: number, averageConfidence: number, completedAt: string }) {
+    const result: QuizResult = {
+      id: `res-${Date.now()}`,
+      learnerId,
+      courseId,
+      moduleId,
+      quizId: "manual-assessment", 
+      score: data.score,
+      averageConfidence: data.averageConfidence,
+      isRetest: false,
+      submittedAt: data.completedAt
+    };
+    this.recordQuizResult(result);
+  }
+
   recordQuizResult(result: QuizResult) {
-    // 1. Find if there's already a result for this learner + module
+    this.ensureInit();
     const existingIndex = this.quizResults.findIndex(
       (r) => r.learnerId === result.learnerId && r.moduleId === result.moduleId
     );
-  
-    if (result.isRetest && existingIndex !== -1) {
-      // 2. REPLACE: Update the existing record with the new retest data
-      // We keep the original ID but update scores and confidence
+
+    if (existingIndex !== -1) {
       this.quizResults[existingIndex] = {
         ...this.quizResults[existingIndex],
         score: result.score,
         averageConfidence: result.averageConfidence,
         submittedAt: result.submittedAt,
-        isRetest: true // Mark that this is now a retest-driven score
+        isRetest: true
       };
-      
-      console.log("Mastery updated: Retest score replaced original.");
     } else {
-      // 3. NEW: If it's the first time or not a retest, just push it
       this.quizResults.push(result);
     }
     
-    // Save to your database or localStorage
     this.saveToDisk();
   }
 
-  /**
-   * Returns the most relevant quiz result for mastery for a learner in a course+module.
-   * If any retest exists, the latest retest replaces earlier attempts.
-   * Otherwise, the latest non-retest attempt is used.
-   */
   getLatestQuizResultForModule(learnerId: string, courseId: string, moduleId: string): QuizResult | undefined {
+    this.ensureInit();
     const relevant = this.quizResults.filter(
       r => r.learnerId === learnerId && r.courseId === courseId && r.moduleId === moduleId,
     );
     if (relevant.length === 0) return undefined;
 
-    const retests = relevant.filter(r => r.isRetest);
-    const pool = retests.length > 0 ? retests : relevant;
-    return pool.sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1))[0];
+    return [...relevant].sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1))[0];
+  }
+
+  // --- MASTERY GATING HELPERS ---
+
+  /**
+   * Simple mastery label based on latest score only.
+   */
+  getModuleMasteryStatus(
+    learnerId: string,
+    courseId: string,
+    moduleId: string
+  ): "Mastered" | "Developing" | "Struggling" | "Not started" {
+    const latest = this.getLatestQuizResultForModule(learnerId, courseId, moduleId);
+    if (!latest) return "Not started";
+    if (latest.score >= 80) return "Mastered";
+    if (latest.score >= 50) return "Developing";
+    return "Struggling";
   }
 
   /**
-   * Resources explicitly assigned to a learner via interventions.
-   * These are visible only to the targeted learner(s).
+   * A module is unlocked if it's the first module in the course,
+   * or if the previous module's latest score is >= 80.
    */
-  getAssignedResourcesForLearner(learnerId: string, courseId?: string, moduleId?: string): Resource[] {
-    const interventionsForLearner = this.interventions.filter(
-      i => i.type === "resource" && i.targetLearnerIds.includes(learnerId),
-    );
-    const contentIds = new Set(interventionsForLearner.map(i => i.contentId).filter(Boolean) as string[]);
-    let res = this.resources.filter(r => contentIds.has(r.id));
-    if (courseId) res = res.filter(r => r.courseId === courseId);
-    if (moduleId) res = res.filter(r => r.moduleId === moduleId);
-    return res;
+  isModuleUnlocked(learnerId: string, courseId: string, moduleId: string): boolean {
+    this.ensureInit();
+    const course = courseDefs.find((c) => c.id === courseId);
+    if (!course) return false;
+
+    const index = course.modules.findIndex((m) => m.id === moduleId);
+    if (index === -1) return false;
+    if (index === 0) return true;
+
+    const prev = course.modules[index - 1];
+    const latestPrev = this.getLatestQuizResultForModule(learnerId, courseId, prev.id);
+    return !!latestPrev && latestPrev.score >= 80;
   }
 
-  // Get all content for a module
-  getModuleContent(courseId: string, moduleId: string): ContentItem[] {
-    const items: ContentItem[] = [];
-    this.quizzes.filter(q => q.courseId === courseId && q.moduleId === moduleId).forEach(q => items.push({ type: "quiz", data: q }));
-    this.videoLectures.filter(v => v.courseId === courseId && v.moduleId === moduleId).forEach(v => items.push({ type: "video", data: v }));
-    this.resources.filter(r => r.courseId === courseId && r.moduleId === moduleId && !r.isOptional).forEach(r => items.push({ type: "resource", data: r }));
-    return items;
+  /**
+   * Ordered modules for a course, decorated for learner dashboards.
+   */
+  getLearnerModuleStates(learnerId: string, courseId: string) {
+    this.ensureInit();
+    const course = courseDefs.find((c) => c.id === courseId);
+    if (!course) return [];
+
+    return course.modules.map((m) => {
+      const latest = this.getLatestQuizResultForModule(learnerId, courseId, m.id);
+      const status = this.getModuleMasteryStatus(learnerId, courseId, m.id);
+      const unlocked = this.isModuleUnlocked(learnerId, courseId, m.id);
+
+      return {
+        id: m.id,
+        name: m.name,
+        latestScore: latest?.score ?? null,
+        status,
+        unlocked,
+      };
+    });
+  }
+
+  // --- MODULES & CONTENT ---
+
+  getModules(): CourseModule[] {
+    this.ensureInit();
+    return this.modules;
+  }
+
+  getModulesByCourse(courseId: string): CourseModule[] {
+    this.ensureInit();
+    return this.modules.filter((m) => m.courseId === courseId);
+  }
+
+  getQuizzes(): Quiz[] {
+    this.ensureInit();
+    return this.quizzes;
+  }
+
+  getQuizzesByModule(courseId: string, moduleId: string): Quiz[] {
+    this.ensureInit();
+    return this.quizzes.filter((q) => q.courseId === courseId && q.moduleId === moduleId);
+  }
+
+  getQuiz(id: string): Quiz | undefined {
+    this.ensureInit();
+    return this.quizzes.find((q) => q.id === id);
+  }
+
+  getVideoLectures(): VideoLecture[] {
+    this.ensureInit();
+    return this.videoLectures;
+  }
+
+  getVideoLecture(id: string): VideoLecture | undefined {
+    this.ensureInit();
+    return this.videoLectures.find((v) => v.id === id);
+  }
+
+  getVideoLecturesByModule(courseId: string, moduleId: string): VideoLecture[] {
+    this.ensureInit();
+    return this.videoLectures.filter(
+      (v) => v.courseId === courseId && v.moduleId === moduleId
+    );
+  }
+
+  getResources(): Resource[] {
+    this.ensureInit();
+    return this.resources;
+  }
+
+  getResource(id: string): Resource | undefined {
+    this.ensureInit();
+    return this.resources.find((r) => r.id === id);
+  }
+
+  getResourcesByModule(courseId: string, moduleId: string): Resource[] {
+    this.ensureInit();
+    return this.resources.filter(
+      (r) => r.courseId === courseId && r.moduleId === moduleId
+    );
   }
 
   getCourseContentCount(courseId: string): number {
-    return this.quizzes.filter(q => q.courseId === courseId).length +
-      this.videoLectures.filter(v => v.courseId === courseId).length +
-      this.resources.filter(r => r.courseId === courseId && !r.isOptional).length;
+    this.ensureInit();
+    const quizCount = this.quizzes.filter((q) => q.courseId === courseId).length;
+    const videoCount = this.videoLectures.filter((v) => v.courseId === courseId).length;
+    const resourceCount = this.resources.filter((r) => r.courseId === courseId).length;
+    return quizCount + videoCount + resourceCount;
   }
 
-  // Teach-back scores
-  getTeachBackScores(): TeachBackScore[] { return this.teachBackScores; }
-  getTeachBackScore(learnerId: string, quizId: string): TeachBackScore | undefined {
-    return this.teachBackScores.find(t => t.learnerId === learnerId && t.quizId === quizId);
+  addModule(mod: CourseModule) {
+    this.ensureInit();
+    this.modules.push(mod);
+    this.saveToDisk();
   }
-  getTeachBackScoresByModule(courseId: string, moduleId: string): TeachBackScore[] {
-    return this.teachBackScores.filter(t => t.courseId === courseId && t.moduleId === moduleId);
+
+  updateModule(id: string, patch: Partial<CourseModule>) {
+    this.ensureInit();
+    this.modules = this.modules.map((m) => (m.id === id ? { ...m, ...patch } : m));
+    this.saveToDisk();
   }
-  addTeachBackScore(score: TeachBackScore) {
-    // Replace existing score for same learner+quiz
-    this.teachBackScores = this.teachBackScores.filter(
-      t => !(t.learnerId === score.learnerId && t.quizId === score.quizId)
+
+  deleteModule(id: string) {
+    this.ensureInit();
+    this.modules = this.modules.filter((m) => m.id !== id);
+    this.quizzes = this.quizzes.filter((q) => q.moduleId !== id);
+    this.videoLectures = this.videoLectures.filter((v) => v.moduleId !== id);
+    this.resources = this.resources.filter((r) => r.moduleId !== id);
+    this.saveToDisk();
+  }
+
+  addQuiz(quiz: Quiz) {
+    this.ensureInit();
+    this.quizzes.push(quiz);
+    this.saveToDisk();
+  }
+
+  updateQuiz(id: string, patch: Partial<Quiz>) {
+    this.ensureInit();
+    this.quizzes = this.quizzes.map((q) => (q.id === id ? { ...q, ...patch } : q));
+    this.saveToDisk();
+  }
+
+  deleteQuiz(id: string) {
+    this.ensureInit();
+    this.quizzes = this.quizzes.filter((q) => q.id !== id);
+    this.saveToDisk();
+  }
+
+  addVideoLecture(lecture: VideoLecture) {
+    this.ensureInit();
+    this.videoLectures.push(lecture);
+    this.saveToDisk();
+  }
+
+  updateVideoLecture(id: string, patch: Partial<VideoLecture>) {
+    this.ensureInit();
+    this.videoLectures = this.videoLectures.map((v) =>
+      v.id === id ? { ...v, ...patch } : v
     );
-    this.teachBackScores.push(score);
-    this.notify();
+    this.saveToDisk();
+  }
+
+  deleteVideoLecture(id: string) {
+    this.ensureInit();
+    this.videoLectures = this.videoLectures.filter((v) => v.id !== id);
+    this.saveToDisk();
+  }
+
+  addResource(resource: Resource) {
+    this.ensureInit();
+    this.resources.push(resource);
+    this.saveToDisk();
+  }
+
+  updateResource(id: string, patch: Partial<Resource>) {
+    this.ensureInit();
+    this.resources = this.resources.map((r) => (r.id === id ? { ...r, ...patch } : r));
+    this.saveToDisk();
+  }
+
+  deleteResource(id: string) {
+    this.ensureInit();
+    this.resources = this.resources.filter((r) => r.id !== id);
+    this.saveToDisk();
+  }
+
+  // --- Lecture completions ---
+
+  completeLecture(learnerId: string, lectureId: string) {
+    this.ensureInit();
+    const existingIndex = this.lectureCompletions.findIndex(
+      (c) => c.learnerId === learnerId && c.lectureId === lectureId
+    );
+    const completion: LectureCompletion = {
+      learnerId,
+      lectureId,
+      completedAt: new Date().toISOString(),
+    };
+
+    if (existingIndex !== -1) {
+      this.lectureCompletions[existingIndex] = completion;
+    } else {
+      this.lectureCompletions.push(completion);
+    }
+
+    this.saveToDisk();
+  }
+
+  isLectureCompleted(learnerId: string, lectureId: string): boolean {
+    this.ensureInit();
+    return this.lectureCompletions.some(
+      (c) => c.learnerId === learnerId && c.lectureId === lectureId
+    );
+  }
+
+  // --- Interventions ---
+
+  addIntervention(intervention: Intervention) {
+    this.ensureInit();
+    this.interventions.push(intervention);
+    this.saveToDisk();
+  }
+
+  getInterventions(): Intervention[] {
+    this.ensureInit();
+    return this.interventions;
+  }
+
+  getInterventionsForLearner(learnerId: string): Intervention[] {
+    this.ensureInit();
+    return this.interventions.filter((i) =>
+      i.targetLearnerIds.includes(learnerId)
+    );
+  }
+
+  // --- Enrollment helpers (per-learner, persisted) ---
+
+  getEnrolledCourseIds(learnerId: string): string[] {
+    this.ensureInit();
+    return this.learnerEnrollments[learnerId] ?? [];
+  }
+
+  enrollLearnerInCourse(learnerId: string, courseId: string) {
+    this.ensureInit();
+    const current = this.learnerEnrollments[learnerId] ?? [];
+    if (!current.includes(courseId)) {
+      this.learnerEnrollments[learnerId] = [...current, courseId];
+      this.saveToDisk();
+    }
+  }
+
+  setEnrolledCourseIds(learnerId: string, courseIds: string[]) {
+    this.ensureInit();
+    this.learnerEnrollments[learnerId] = [...new Set(courseIds)];
+    this.saveToDisk();
   }
 }
 
 export const contentStore = new ContentStore();
-

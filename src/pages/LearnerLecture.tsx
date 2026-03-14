@@ -15,7 +15,7 @@ export default function LearnerLecture() {
     const video = videoRef.current;
     const handleEnded = () => {
       setCompleted(true);
-      contentStore.completeLecture("demo-learner", lecture.id);
+      contentStore.completeLecture("member-marcus", lecture.id);
     };
     video.addEventListener("ended", handleEnded);
     return () => video.removeEventListener("ended", handleEnded);
@@ -65,7 +65,15 @@ export default function LearnerLecture() {
           {!completed && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Watch the full lecture to unlock the quiz.</p>
-              <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setCompleted(true); contentStore.completeLecture("demo-learner", lecture.id); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full"
+                onClick={() => {
+                  setCompleted(true);
+                  contentStore.completeLecture("member-marcus", lecture.id);
+                }}
+              >
                 Mark as Complete
               </Button>
             </div>

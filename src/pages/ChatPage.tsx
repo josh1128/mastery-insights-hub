@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send } from "lucide-react";
-import { chatStore, Conversation } from "@/data/chatStore";
+import { chatStore, Conversation, sendDirectMessage } from "@/data/chatStore";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 
 const formatTime = (iso: string) => {
@@ -34,13 +34,22 @@ const ChatPage = () => {
   );
 
   useEffect(() => {
+    const unsub = chatStore.subscribe(() => {
+      setConversations([...chatStore.getConversations()]);
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  useEffect(() => {
     if (targetMemberId) {
       const conv = conversations.find(c => c.memberId === targetMemberId);
       if (conv) setSelectedId(conv.id);
     } else if (conversations.length > 0 && !selectedId) {
       setSelectedId(conversations[0].id);
     }
-  }, [targetMemberId, conversations]);
+  }, [targetMemberId, conversations, selectedId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -48,6 +57,15 @@ const ChatPage = () => {
 
   const sendMessage = () => {
     if (!messageText.trim() || !selectedId) return;
+    const conv = conversations.find(c => c.id === selectedId);
+    if (!conv) return;
+
+    try {
+      sendDirectMessage(conv.memberId, messageText);
+    } catch {
+      // Swallow for now; instructor chat is demo-only
+    }
+
     setMessageText("");
   };
 

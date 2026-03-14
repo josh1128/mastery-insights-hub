@@ -23,12 +23,15 @@ const confidenceOrder: ConfidenceLevel[] = ["not-sure", "unsure", "confident"];
 export default function LearnerQuiz() {
   const { quizId } = useParams();
   const quiz = contentStore.getQuiz(quizId || "");
-  const learnerId = "member-1";
+  // Keep learner identity aligned with Marcus' profile and mastery dashboard
+  const learnerId = "member-marcus";
 
   const relatedLectures = quiz
     ? contentStore.getVideoLecturesByModule(quiz.courseId, quiz.moduleId)
     : [];
   const allLecturesCompleted =
+    // Retest quizzes bypass the video-completion gate
+    (quiz?.isRetest ?? false) ||
     relatedLectures.length === 0 ||
     relatedLectures.every((l) => contentStore.isLectureCompleted(learnerId, l.id));
 

@@ -46,7 +46,8 @@ const CourseDetail = () => {
   const areModuleLecturesCompleted = (moduleId: string): boolean => {
     const lectures = contentStore.getVideoLecturesByModule(course.id, moduleId);
     if (lectures.length === 0) return true;
-    return lectures.every(l => contentStore.isLectureCompleted("demo-learner", l.id));
+    // Mirror the learner identity used in the Marcus learner portal
+    return lectures.every(l => contentStore.isLectureCompleted("member-marcus", l.id));
   };
 
   return (

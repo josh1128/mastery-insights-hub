@@ -193,6 +193,8 @@ class ChatStore {
 }
 
 export const chatStore = new ChatStore();
+
+// Instructor-side sender (used in instructor chat page)
 export const sendDirectMessage = (recipientId: string, text: string) =>
   chatStore.sendDirectMessage(INSTRUCTOR_ID, recipientId, text);
 export const sendMassMessage = (recipientIds: string[], text: string) =>

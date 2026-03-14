@@ -156,6 +156,11 @@ export default function LearnerQuiz() {
       ...(clusterContent?.clusterAdditions.optionalResources ?? []),
     ];
 
+    const getAnswerLabel = (q: typeof quiz.questions[0], val: string) => {
+      if (q.type === "true-false") return val === "true" ? "True" : "False";
+      return q.options?.find((o) => o.id === val)?.text ?? val;
+    };
+
     return (
       <div className="max-w-2xl mx-auto space-y-8 animate-fade-in py-8">
         <div className="text-center space-y-4">
@@ -165,6 +170,7 @@ export default function LearnerQuiz() {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quiz Complete!</h1>
         </div>
 
+        {/* Score cards */}
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Correctness</p>
@@ -178,6 +184,47 @@ export default function LearnerQuiz() {
           </div>
         </div>
 
+        {/* Answer review */}
+        <div className="rounded-[2rem] border border-slate-100 bg-white p-8 space-y-6 shadow-sm">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Your Answers</p>
+          <ul className="space-y-5">
+            {quiz.questions.map((q, idx) => {
+              const userAnswer = answers[q.id];
+              const isCorrect = userAnswer === q.correctAnswer;
+              return (
+                <li key={q.id} className="space-y-2">
+                  <p className="text-sm font-semibold text-slate-800 leading-snug">
+                    {idx + 1}. {q.text}
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    <div className={`flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl ${
+                      isCorrect ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                    }`}>
+                      <span className="font-bold">{isCorrect ? "✓" : "✗"}</span>
+                      <span>
+                        Your answer:{" "}
+                        <span className="font-semibold">
+                          {userAnswer ? getAnswerLabel(q, userAnswer) : "Not answered"}
+                        </span>
+                      </span>
+                    </div>
+                    {!isCorrect && (
+                      <div className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700">
+                        <span className="font-bold">✓</span>
+                        <span>
+                          Correct answer:{" "}
+                          <span className="font-semibold">{getAnswerLabel(q, q.correctAnswer)}</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* Instructor recommendations */}
         <div className="rounded-[2rem] border border-slate-100 bg-white p-8 space-y-4 shadow-sm">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
             Recommended by Your Instructor

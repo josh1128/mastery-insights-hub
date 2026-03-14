@@ -15,7 +15,7 @@ export const demoVideos: VideoLecture[] = [
         id: "cp-arrays-1",
         timestampSeconds: 30,
         prompt: "How confident are you that you understand what an array is?"
-      }
+      } 
     ],
     createdAt: new Date().toISOString()
   },
@@ -126,8 +126,22 @@ export const demoResources: Resource[] = [
     fileType: "pdf",
     isOptional: false,
     createdAt: new Date().toISOString()
+  },
+
+  {
+    id: "pdf-precourse-optional",
+    title: "Data Structures Quick Reference",
+    courseId: "course-1",
+    moduleId: "testing",
+    fileName: "ds-quick-reference.pdf",
+    fileUrl: "/demo/resources/ds-quick-reference.pdf",
+    fileType: "pdf",
+    isOptional: true,
+    createdAt: new Date().toISOString()
   }
 ];
+
+
 
 
 /* ------------------ QUIZZES (MAX 3 QUESTIONS) ------------------ */
@@ -198,6 +212,43 @@ export const demoQuizzes: Quiz[] = [
         type: "true-false",
         text: "Two-pointer technique is often used with sorted arrays.",
         correctAnswer: "true"
+      }
+    ]
+  },
+
+  // In demoQuizzes, add:
+{
+    id: "quiz-ds-precourse-retest",
+    title: "Pre-Course Knowledge Check — Retest",
+    courseId: "course-1",
+    moduleId: "testing",
+    captureConfidence: true,
+    isRetest: true,
+    createdAt: new Date().toISOString(),
+    questions: [
+      {
+        id: "pre-rt-q1",
+        type: "true-false",
+        text: "A stack follows Last-In First-Out (LIFO) order.",
+        correctAnswer: "true"
+      },
+      {
+        id: "pre-rt-q2",
+        type: "multiple-choice",
+        text: "What is the time complexity of searching an unsorted array?",
+        correctAnswer: "on",
+        options: [
+          { id: "o1", text: "O(1)" },
+          { id: "on", text: "O(n)" },
+          { id: "ologn", text: "O(log n)" },
+          { id: "on2", text: "O(n²)" }
+        ]
+      },
+      {
+        id: "pre-rt-q3",
+        type: "true-false",
+        text: "A linked list allows O(1) random access by index.",
+        correctAnswer: "false"
       }
     ]
   },

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { courses } from "@/data/courses";
-import { members } from "@/data/members";
+import { members } from "@/data/members";   
 import { contentStore } from "@/data/contentStore";
 import { PageGlow } from "@/components/decorative/PageDecorations";
 
@@ -33,7 +33,7 @@ const CoursesPage = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {courseCards.map((course) => (
-            <Link to={`/courses/${course.id}`} key={course.id}>
+            <Link to={`/learner/courses/${course.id}`} key={course.id}>
               <Card className="hover:shadow-glow transition-all duration-300 cursor-pointer h-full group overflow-hidden">
                 <div className="h-40 bg-gradient-to-br from-primary via-primary-glow to-primary rounded-t-2xl flex items-end p-6 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -62,4 +62,3 @@ const CoursesPage = () => {
 };
 
 export default CoursesPage;
-

@@ -22,10 +22,14 @@ const CourseDetail = () => {
   const [selectedClusterByModule, setSelectedClusterByModule] = useState<Record<string, ClusterName>>({});
   const [resourcePreview, setResourcePreview] = useState<Resource | null>(null);
 
+  
+
   useEffect(() => {
     const unsub = contentStore.subscribe(forceUpdate);
     return () => { unsub(); };
   }, []);
+
+  
 
   const course = getCourse(id || "");
   if (!course) {
@@ -119,7 +123,7 @@ const CourseDetail = () => {
                               <span className="text-xs text-muted-foreground">Viewing module as:</span>
                               <ClusterSelector value={cluster} onValueChange={setCluster} />
                               <Badge variant="outline" className="text-[10px] w-fit rounded-full" style={{ borderColor: clusterColors[cluster] }}>
-                                {clusterMeta[cluster].label}
+                                {clusterMeta[cluster].desc}
                               </Badge>
                             </div>
 
@@ -164,7 +168,7 @@ const CourseDetail = () => {
                                             <TooltipContent>Complete all lectures in this module first</TooltipContent>
                                           </Tooltip>
                                         ) : (
-                                          <Link to={`/learn/quiz/${quiz.id}`}>
+                                            <Link to={`/learn/quiz/${quiz.id}?return=/courses/${course.id}`}>
                                             <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
                                           </Link>
                                         )}

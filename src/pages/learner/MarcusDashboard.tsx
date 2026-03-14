@@ -1,102 +1,195 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Brain, Target } from "lucide-react";
-import { getMemberModuleData } from "@/data/members";
+import { Brain, Target, GraduationCap, BookOpen } from "lucide-react";
 import { courses } from "@/data/courses";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { contentStore } from "@/data/contentStore";
-import { toast } from "sonner"; // Assuming you're using sonner for notifications
+import { useSyncExternalStore } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
-const MarcusDashboard = () => {
-  // Use the ID we hardcoded in members.ts
-  const memberId = "member-marcus";
-  const courseId = courses[0].id;
-  const moduleId = "module-1"; 
+const memberId = "member-marcus";
 
-  // Pulls the latest data (either hardcoded 0 or real results from contentStore)
-  const data = getMemberModuleData(memberId, courseId, moduleId);
+export default function MarcusDashboard() {
+  const navigate = useNavigate();
 
-  /**
-   * This function bridges the gap between the Learner and Instructor view.
-   * It saves a result to the shared contentStore.
-   */
-  const handleSimulateMastery = () => {
-    contentStore.saveQuizResult(memberId, courseId, moduleId, {
-      score: 100,
-      averageConfidence: 100,
-      answers: [],
-      completedAt: new Date().toISOString(),
-    });
+  // Re-render whenever contentStore changes (quiz submissions etc.)
+  useSyncExternalStore(
+    (cb) => contentStore.subscribe(cb),
+    () => contentStore.getQuizzes()
+  );
 
-    toast.success("Module Mastered! Instructor view updated.");
-    
-    // Refresh to reflect the new state from the store
-    setTimeout(() => {
-        window.location.reload();
-    }, 1000);
-  };
+  const enrolledCourse = courses[0];
+  const allModules = enrolledCourse.modules;
+
+  // Pull latest result per module
+  const moduleResults = allModules.map((mod) => {
+    const result = contentStore.getLatestQuizResultForModule(memberId, enrolledCourse.id, mod.id);
+    return { mod, result };
+  });
+
+  const completedModules = moduleResults.filter((m) => m.result != null);
+  const totalModules = allModules.length;
+
+  // Averages only across completed (graded) modules
+  const avgScore =
+    completedModules.length > 0
+      ? Math.round(completedModules.reduce((sum, m) => sum + (m.result?.score ?? 0), 0) / completedModules.length)
+      : 0;
+
+  const avgConfidence =
+    completedModules.length > 0
+      ? Math.round(
+          completedModules.reduce((sum, m) => sum + (m.result?.averageConfidence ?? 0), 0) /
+            completedModules.length
+        )
+      : 0;
+
+  const completionPct = Math.round((completedModules.length / totalModules) * 100);
+
+  // Mastery trend — one point per completed module in order
+  const trendData = completedModules.map(({ mod, result }) => ({
+    name: mod.name,
+    score: result?.score ?? 0,
+    confidence: result?.averageConfidence ?? 0,
+  }));
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
-      <header>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome, Marcus Smith</h1>
-        <p className="text-slate-500 mt-2">Introduction to Data Structures — Module 1 Progress</p>
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome, Marcus Smith</h1>
+          <p className="text-slate-500 mt-2">{enrolledCourse.name} — Progress Overview</p>
+        </div>
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 font-bold rounded-full px-4 h-9 transition-all active:scale-95"
+        >
+          <GraduationCap className="h-4 w-4" />
+          <span className="text-xs uppercase tracking-wider">Switch to Instructor</span>
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Test Score Card */}
+        {/* Completion */}
         <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest">Test Score</CardTitle>
-            <Target className="h-5 w-5 text-indigo-600" />
+            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+              Completion
+            </CardTitle>
+            <BookOpen className="h-5 w-5 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-black text-slate-900">{data.score}%</div>
-            <Progress value={data.score} className="h-2 mt-4 bg-slate-100" />
+            <div className="text-5xl font-black text-slate-900">{completionPct}%</div>
+            <Progress value={completionPct} className="h-2 mt-4 bg-slate-100" />
             <p className="text-[10px] text-slate-400 mt-4 font-bold uppercase tracking-tight">
-              {data.score > 0 ? "Highest Achievement" : "Last attempt: Not completed"}
+              {completedModules.length} of {totalModules} modules graded
             </p>
           </CardContent>
         </Card>
 
-        {/* Confidence Card */}
+        {/* Avg Score */}
         <Card className="border-none shadow-sm bg-white rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest">Confidence</CardTitle>
-            <Brain className="h-5 w-5 text-violet-600" />
+            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+              Avg Score
+            </CardTitle>
+            <Target className="h-5 w-5 text-indigo-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-black text-slate-900">{data.confidence}%</div>
-            <Progress value={data.confidence} className="h-2 mt-4 bg-slate-100" />
-            <p className="text-[10px] text-slate-400 mt-4 font-bold uppercase tracking-tight">Self-reported level</p>
+            <div className="text-5xl font-black text-slate-900">{avgScore}%</div>
+            <Progress value={avgScore} className="h-2 mt-4 bg-slate-100" />
+            <p className="text-[10px] text-slate-400 mt-4 font-bold uppercase tracking-tight">
+              {completedModules.length > 0 ? "Across graded modules" : "No quizzes submitted yet"}
+            </p>
           </CardContent>
         </Card>
 
-        {/* Status Hint / Interaction Card */}
-        <div className="md:col-span-1 flex items-center">
-          <div className="bg-gradient-to-br from-indigo-600 to-violet-700 text-white p-8 rounded-[2.5rem] shadow-xl shadow-indigo-200 w-full relative overflow-hidden group">
-            <div className="relative z-10">
-              <h3 className="font-bold text-xl">Current Goal</h3>
-              <p className="text-indigo-100 text-sm mt-3 leading-relaxed font-medium">
-                {data.score === 0 
-                  ? "You are currently marked as 'Struggling' in the instructor dashboard. Complete a module to update your status!" 
-                  : "Great work! You've mastered this module. Check out the next topic."}
-              </p>
-              
-              <button 
-                onClick={handleSimulateMastery}
-                className="mt-6 bg-white text-indigo-600 px-6 py-3 rounded-full text-xs font-black hover:bg-indigo-50 transition-all active:scale-95 shadow-md uppercase tracking-wider"
-              >
-                {data.score === 0 ? "Simulate 100% Mastery" : "Review Module"}
-              </button>
-            </div>
-            
-            {/* Decorative background shapes */}
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors" />
-          </div>
-        </div>
+        {/* Avg Confidence */}
+        <Card className="border-none shadow-sm bg-white rounded-2xl">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+              Avg Confidence
+            </CardTitle>
+            <Brain className="h-5 w-5 text-violet-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-5xl font-black text-slate-900">{avgConfidence}%</div>
+            <Progress value={avgConfidence} className="h-2 mt-4 bg-slate-100" />
+            <p className="text-[10px] text-slate-400 mt-4 font-bold uppercase tracking-tight">
+              Self-reported across graded modules
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Mastery Trend */}
+      <Card className="border-none shadow-sm bg-white rounded-2xl">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+            Mastery Trend
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {trendData.length === 0 ? (
+            <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
+              Complete your first quiz to start tracking your progress.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={trendData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 11, fill: "#94a3b8" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", fontSize: "12px" }}
+                  formatter={(value: number, name: string) => [`${value}%`, name === "score" ? "Score" : "Confidence"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="#6366f1"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
+                  activeDot={{ r: 6 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="confidence"
+                  stroke="#a78bfa"
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  dot={{ r: 3, fill: "#a78bfa", strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+          {trendData.length > 0 && (
+            <div className="flex gap-4 mt-3 justify-end">
+              <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                <span className="inline-block w-4 h-0.5 bg-indigo-500 rounded" />
+                Score
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                <span className="inline-block w-4 h-0.5 bg-violet-400 rounded" style={{ borderTop: "2px dashed #a78bfa", background: "none" }} />
+                Confidence
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default MarcusDashboard;
+}

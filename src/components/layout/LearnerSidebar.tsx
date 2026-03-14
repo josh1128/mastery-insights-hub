@@ -7,9 +7,9 @@ import {
 } from "@/components/ui/sidebar";
 
 const learnerItems = [
-  { title: "My Dashboard", url: "/learner/dashboard", icon: Home },
-  { title: "My Courses", url: "/courses", icon: BookOpen }, // Shared course view
-  { title: "Message Josh", url: "/chat", icon: MessageCircle }, // Direct to instructor
+    { title: "My Dashboard", url: "/learner/dashboard", icon: Home },
+    { title: "My Courses", url: "/learner/courses", icon: BookOpen },
+  { title: "Message Josh", url: "/learner/chat", icon: MessageCircle }, // Direct to instructor
 ];
 
 export function LearnerSidebar() {

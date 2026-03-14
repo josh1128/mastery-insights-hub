@@ -3,7 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
-import { toast } from "sonner";
 
 type ConfidenceLevel = "not-sure" | "unsure" | "confident" | null;
 
@@ -37,18 +36,9 @@ export default function LearnerQuiz() {
   const [confidences, setConfidences] = useState<Record<string, ConfidenceLevel>>({});
   const [submitted, setSubmitted] = useState(false);
 
-  if (!quiz) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <Link to="/admin/content" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back
-        </Link>
-        <p className="text-muted-foreground">Quiz not found.</p>
-      </div>
-    );
-  }
+  if (!quiz) return <div className="p-8 text-center">Quiz not found.</div>;
 
-  // Lock screen
+  // Lock screen logic
   if (!allLecturesCompleted) {
     return (
       <div className="max-w-xl mx-auto text-center space-y-6 py-20 animate-fade-in">
@@ -64,18 +54,23 @@ export default function LearnerQuiz() {
     );
   }
 
-  const cycleConfidence = (qId: string) => {
-    setConfidences((prev) => {
-      const current = prev[qId];
-      const currentIdx = current ? confidenceOrder.indexOf(current) : -1;
-      const nextIdx = (currentIdx + 1) % confidenceOrder.length;
-      return { ...prev, [qId]: confidenceOrder[nextIdx] };
-    });
-  };
-
-  const selectAnswer = (qId: string, value: string) => {
+  // Combined Selection & Cycle Logic
+  const handleAnswerSelect = (qId: string, value: string) => {
     if (submitted) return;
-    setAnswers((prev) => ({ ...prev, [qId]: value }));
+
+    const isCurrentlySelected = answers[qId] === value;
+
+    if (isCurrentlySelected) {
+      // Cycle confidence level if clicking the same answer
+      const currentConf = confidences[qId];
+      const currentIdx = currentConf ? confidenceOrder.indexOf(currentConf) : -1;
+      const nextIdx = (currentIdx + 1) % confidenceOrder.length;
+      setConfidences((prev) => ({ ...prev, [qId]: confidenceOrder[nextIdx] }));
+    } else {
+      // Set new selection and default to 'not-sure'
+      setAnswers((prev) => ({ ...prev, [qId]: value }));
+      setConfidences((prev) => ({ ...prev, [qId]: "not-sure" }));
+    }
   };
 
   const handleSubmit = () => {
@@ -108,38 +103,16 @@ export default function LearnerQuiz() {
     });
   };
 
-  const quizScore = quiz.questions.filter((q) => answers[q.id] === q.correctAnswer).length;
-  const quizTotal = quiz.questions.length;
-  const confidencePercent =
-    Object.values(confidences).filter(Boolean).length > 0
-      ? Math.round(
-          (Object.values(confidences).filter(Boolean) as ConfidenceLevel[]).reduce((sum, level) => {
-            if (level === "not-sure") return sum + 20;
-            if (level === "unsure") return sum + 50;
-            return sum + 85;
-          }, 0) / Object.values(confidences).filter(Boolean).length,
-        )
-      : 0;
-
-  // Get the answer button color based on confidence for selected answers
   const getAnswerStyle = (qId: string, value: string) => {
     const isSelected = answers[qId] === value;
-    const confidence = confidences[qId];
-
-    if (!isSelected) {
-      return "bg-card border border-border/40 text-foreground hover:bg-accent/50";
-    }
-
+    if (!isSelected) return "bg-white border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm";
+    
     if (submitted) {
       const isCorrect = quiz.questions.find((q) => q.id === qId)?.correctAnswer === value;
-      if (isCorrect) return "bg-[hsl(142_71%_45%)] text-white";
-      return "bg-destructive text-destructive-foreground";
+      return isCorrect ? "bg-emerald-500 text-white border-transparent" : "bg-red-500 text-white border-transparent";
     }
 
-    if (confidence) {
-      return `text-white border-transparent`;
-    }
-    return "bg-gradient-to-r from-primary to-primary-glow text-primary-foreground shadow-glow";
+    return "text-white border-transparent scale-[1.01] shadow-md";
   };
 
   const getAnswerInlineStyle = (qId: string, value: string) => {
@@ -151,174 +124,129 @@ export default function LearnerQuiz() {
     return {};
   };
 
-  // Completion screen
+  // Completion Screen
   if (submitted) {
-    // Get instructor recommendations from interventions
-    const interventions = contentStore.getInterventionsForLearner(learnerId);
-    const recommendations = interventions
-      .filter((i) => i.courseId === quiz.courseId && (i.type === "resource" || i.type === "message"))
-      .map((i) => {
-        if (i.type === "message" && i.message) return i.message;
-        if (i.type === "resource" && i.contentId) {
-          const res = contentStore.getResource(i.contentId);
-          return res ? `Read: ${res.title}` : null;
-        }
-        return null;
-      })
-      .filter(Boolean);
+    const quizScore = quiz.questions.filter((q) => answers[q.id] === q.correctAnswer).length;
+    const confidencePercent = Math.round(
+      (Object.values(confidences).filter(Boolean) as ConfidenceLevel[]).reduce((sum, level) => {
+        if (level === "not-sure") return sum + 20;
+        if (level === "unsure") return sum + 50;
+        return sum + 85;
+      }, 0) / quiz.questions.length
+    );
 
     return (
       <div className="max-w-2xl mx-auto space-y-8 animate-fade-in py-8">
         <div className="text-center space-y-4">
-          <div className="h-16 w-16 rounded-full bg-[hsl(142_71%_45%)]/20 flex items-center justify-center mx-auto">
-            <CheckCircle2 className="h-8 w-8 text-[hsl(142_71%_45%)]" />
+          <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+            <CheckCircle2 className="h-8 w-8 text-emerald-600" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            Good Job! You Completed {quiz.title}!
-          </h1>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quiz Complete!</h1>
         </div>
-
-        {/* Scores */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm p-6 text-center space-y-2 shadow-glass">
-            <p className="text-sm font-medium text-muted-foreground">Confidence Score</p>
-            <p className="text-4xl font-bold text-foreground">{confidencePercent}%</p>
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Correctness</p>
+            <p className="text-4xl font-black text-slate-900">{Math.round((quizScore / quiz.questions.length) * 100)}%</p>
           </div>
-          <div className="rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm p-6 text-center space-y-2 shadow-glass">
-            <p className="text-sm font-medium text-muted-foreground">Correctness Score</p>
-            <p className="text-4xl font-bold text-foreground">
-              {quizTotal > 0 ? Math.round((quizScore / quizTotal) * 100) : 0}%
-            </p>
+          <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg Confidence</p>
+            <p className="text-4xl font-black text-slate-900">{confidencePercent}%</p>
           </div>
         </div>
-
-        {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 space-y-3">
-            <p className="text-sm font-semibold text-foreground">
-              Here are the action items recommended by your instructor:
-            </p>
-            <ul className="space-y-2">
-              {recommendations.map((rec, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>{rec}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="flex justify-center gap-3">
-          <Link to="/courses">
-            <Button variant="outline" className="rounded-full">Back to Courses</Button>
-          </Link>
+        <div className="flex justify-center">
+          <Link to="/courses"><Button variant="outline" className="rounded-full px-8">Return Home</Button></Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-fade-in py-4">
-      {/* Header */}
-      <div className="space-y-3">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">{quiz.title}</h1>
-        {quiz.captureConfidence && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              Click the button to change your confidence level.
-            </p>
-            <div className="flex items-center gap-4">
-              {confidenceOrder.map(
-                (level) =>
-                  level && (
-                    <span key={level} className="flex items-center gap-1.5 text-sm">
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: confidenceColors[level] }}
-                      />
-                      {confidenceLabels[level]}
-                    </span>
-                  ),
-              )}
+    <div className="max-w-2xl mx-auto space-y-10 animate-fade-in py-8">
+      {/* 1. VISUAL INSTRUCTION HEADER */}
+      <div className="rounded-[2rem] border-2 border-slate-100 bg-slate-50/50 p-8 space-y-6 shadow-sm">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{quiz.title}</h1>
+          <p className="text-slate-500 text-sm font-medium">Follow the click guide below to set your confidence:</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100">
+            <div className="h-7 w-7 rounded-full bg-red-500 flex items-center justify-center text-white font-bold shrink-0 text-xs">1</div>
+            <div>
+              <p className="text-xs font-bold text-slate-900">1st Click</p>
+              <p className="text-[10px] text-red-600 font-bold uppercase tracking-tight">Not Sure</p>
             </div>
           </div>
-        )}
+
+          <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100">
+            <div className="h-7 w-7 rounded-full bg-yellow-500 flex items-center justify-center text-white font-bold shrink-0 text-xs">2</div>
+            <div>
+              <p className="text-xs font-bold text-slate-900">2nd Click</p>
+              <p className="text-[10px] text-yellow-600 font-bold uppercase tracking-tight">Unsure</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-100">
+            <div className="h-7 w-7 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold shrink-0 text-xs">3</div>
+            <div>
+              <p className="text-xs font-bold text-slate-900">3rd Click</p>
+              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-tight">Confident</p>
+            </div>
+          </div>
+        </div>
+        
+        <p className="text-[11px] text-slate-400 italic text-center">
+          Click your chosen answer again to cycle through these levels.
+        </p>
       </div>
 
-      {/* Questions */}
-      <div className="space-y-6">
+      {/* 2. THE QUESTIONS */}
+      <div className="space-y-12">
         {quiz.questions.map((q, idx) => (
-          <div
-            key={q.id}
-            className="rounded-2xl border border-border/40 bg-card/80 backdrop-blur-sm p-6 space-y-4 shadow-glass"
-          >
-            <p className="text-base font-medium text-foreground">
-              {idx + 1}. {q.text || `Question ${idx + 1}`}
+          <div key={q.id} className="space-y-4">
+            <p className="text-lg font-bold text-slate-900 leading-snug">
+              {idx + 1}. {q.text}
             </p>
 
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Confidence button */}
-              {quiz.captureConfidence && (
-                <button
-                  onClick={() => cycleConfidence(q.id)}
-                  className="w-9 h-9 rounded-full border-2 border-border transition-all flex-shrink-0"
-                  style={{
-                    backgroundColor: confidences[q.id]
-                      ? confidenceColors[confidences[q.id]!]
-                      : "hsl(var(--muted))",
-                    borderColor: confidences[q.id]
-                      ? confidenceColors[confidences[q.id]!]
-                      : undefined,
-                  }}
-                  title={
-                    confidences[q.id]
-                      ? confidenceLabels[confidences[q.id]!]
-                      : "Click to set confidence"
-                  }
-                />
-              )}
-
+            <div className="grid grid-cols-1 gap-2.5">
               {q.type === "true-false" ? (
-                <>
+                <div className="flex gap-2">
                   {["true", "false"].map((val) => (
                     <button
                       key={val}
-                      onClick={() => selectAnswer(q.id, val)}
-                      className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${getAnswerStyle(q.id, val)}`}
+                      onClick={() => handleAnswerSelect(q.id, val)}
+                      className={`flex-1 py-4 rounded-2xl text-sm font-medium transition-all border-2 ${getAnswerStyle(q.id, val)}`}
                       style={getAnswerInlineStyle(q.id, val)}
                     >
                       {val === "true" ? "True" : "False"}
                     </button>
                   ))}
-                </>
-              ) : (
-                <div className="w-full space-y-2 mt-1">
-                  {(q.options || []).map((o) => (
-                    <button
-                      key={o.id}
-                      onClick={() => selectAnswer(q.id, o.id)}
-                      className={`w-full text-left px-5 py-3 rounded-xl text-sm font-medium transition-all ${getAnswerStyle(q.id, o.id)}`}
-                      style={getAnswerInlineStyle(q.id, o.id)}
-                    >
-                      {o.text || "Option"}
-                    </button>
-                  ))}
                 </div>
+              ) : (
+                (q.options || []).map((o) => (
+                  <button
+                    key={o.id}
+                    onClick={() => handleAnswerSelect(q.id, o.id)}
+                    className={`w-full text-left px-6 py-4 rounded-2xl text-sm font-medium transition-all border-2 ${getAnswerStyle(q.id, o.id)}`}
+                    style={getAnswerInlineStyle(q.id, o.id)}
+                  >
+                    {o.text}
+                  </button>
+                ))
               )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Submit */}
-      <div className="flex justify-center pb-8">
-        <Button
-          size="lg"
-          onClick={handleSubmit}
-          className="px-10 rounded-full shadow-glow"
+      {/* 3. SUBMIT */}
+      <div className="flex justify-center pt-8 pb-16">
+        <Button 
+          size="lg" 
+          onClick={handleSubmit} 
+          className="px-12 rounded-full h-14 text-base font-bold bg-violet-600 hover:bg-violet-700 shadow-xl transition-all hover:scale-105"
         >
-          Submit
+          Submit Quiz
         </Button>
       </div>
     </div>

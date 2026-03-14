@@ -43,7 +43,7 @@ const CertificateBuilder = () => {
             </div>
             <div className="p-8 bg-gradient-to-br from-secondary to-card min-h-[400px] flex items-center justify-center">
               <div className="bg-card border rounded-xl p-8 w-full max-w-md shadow-lg text-center space-y-4">
-                <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mx-auto">
+                <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center mx-auto">
                   <Award className="h-6 w-6 text-primary" />
                 </div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Certificate of Completion</p>
@@ -99,7 +99,7 @@ const CertificateBuilder = () => {
                       { value: "immediate", label: "Release Immediately", desc: "Instantly visible; you won't be able to edit." },
                       { value: "tbd", label: "TBD / Unscheduled", desc: "Release plan to be determined later." },
                     ].map((opt) => (
-                      <label key={opt.value} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                      <label key={opt.value} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
                         <RadioGroupItem value={opt.value} className="mt-0.5" />
                         <div>
                           <p className="text-sm font-medium text-foreground">{opt.label}</p>

@@ -105,30 +105,30 @@ export function getMemberModuleData(
 
   const rng = seededRng(seed);
 
-  // Generate score and confidence with some clustering tendencies
+  // Generate score and confidence with clustering tendencies suitable for the new 2x2 matrix
   const archetype = rng();
   let score: number, confidence: number;
 
   if (archetype < 0.30) {
-    // High performers
-    score = 60 + rng() * 40;
-    confidence = 55 + rng() * 45;
+    // Mastery (High Score, High Conf)
+    score = 70 + rng() * 30;
+    confidence = 70 + rng() * 30;
   } else if (archetype < 0.45) {
-    // Possible guessers
-    score = 60 + rng() * 35;
-    confidence = 10 + rng() * 30;
+    // Overconfident (Low Score, High Conf)
+    score = 10 + rng() * 40;
+    confidence = 70 + rng() * 30;
   } else if (archetype < 0.58) {
-    // Misconception risk
-    score = 10 + rng() * 30;
-    confidence = 60 + rng() * 35;
+    // Underconfident (High Score, Low Conf)
+    score = 70 + rng() * 30;
+    confidence = 10 + rng() * 40;
   } else if (archetype < 0.70) {
-    // Struggling
-    score = 5 + rng() * 35;
-    confidence = 5 + rng() * 35;
+    // Struggling (Low Score, Low Conf)
+    score = 10 + rng() * 40;
+    confidence = 10 + rng() * 40;
   } else {
-    // Developing (middle zone)
-    score = 30 + rng() * 40;
-    confidence = 30 + rng() * 40;
+    // Middle spread (around threshold transition zone)
+    score = 40 + rng() * 30;
+    confidence = 40 + rng() * 30;
   }
 
   return {

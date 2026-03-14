@@ -229,7 +229,7 @@ export default function ContentPage() {
                 {hasContent && (
                   <div className="space-y-2">
                     {moduleVideos.map(vid => (
-                      <div key={vid.id} className="flex items-center justify-between py-3 px-4 rounded-2xl border border-border/30 hover:bg-accent/30 hover:shadow-soft transition-all">
+                      <div key={vid.id} className="flex items-center justify-between py-3 px-4 rounded-2xl border border-border/30 hover:bg-slate-50 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
                             <Video className="h-4 w-4 text-primary" />
@@ -254,7 +254,7 @@ export default function ContentPage() {
                     ))}
 
                     {moduleQuizzes.map(quiz => (
-                      <div key={quiz.id} className="flex items-center justify-between py-3 px-4 rounded-2xl border border-border/30 hover:bg-accent/30 hover:shadow-soft transition-all">
+                      <div key={quiz.id} className="flex items-center justify-between py-3 px-4 rounded-2xl border border-border/30 hover:bg-slate-50 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
                             <FileText className="h-4 w-4 text-primary" />
@@ -284,7 +284,7 @@ export default function ContentPage() {
                     ))}
 
                     {moduleResources.map(res => (
-                      <div key={res.id} className="flex items-center justify-between py-3 px-4 rounded-2xl border border-border/30 hover:bg-accent/30 hover:shadow-soft transition-all">
+                      <div key={res.id} className="flex items-center justify-between py-3 px-4 rounded-2xl border border-border/30 hover:bg-slate-50 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center">
                             <File className="h-4 w-4 text-muted-foreground" />
@@ -361,7 +361,7 @@ export default function ContentPage() {
               </div>
               <div className="space-y-2">
                 <Label>File</Label>
-                <div className="border-2 border-dashed border-border/40 rounded-2xl p-6 text-center bg-accent/20">
+                <div className="border-2 border-dashed border-border/40 rounded-2xl p-6 text-center bg-indigo-50/60">
                   {resourceFileName ? (
                     <div className="flex items-center justify-center gap-2">
                       <File className="h-4 w-4 text-primary" />
@@ -377,7 +377,7 @@ export default function ContentPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-border/40 p-4 bg-accent/10">
+              <div className="flex items-center justify-between rounded-2xl border border-border/40 p-4 bg-indigo-50/40">
                 <div>
                   <p className="text-sm font-medium">Optional Resource</p>
                   <p className="text-xs text-muted-foreground">Optional resources won't appear as required course content</p>

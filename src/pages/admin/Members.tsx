@@ -69,7 +69,7 @@ const MembersPage = () => {
               </TableHeader>
               <TableBody>
                 {filtered.map(m => (
-                  <TableRow key={m.id} className="hover:bg-accent/30 transition-colors">
+                  <TableRow key={m.id} className="hover:bg-slate-50 transition-colors">
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">

@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { MessageCircle, RotateCcw, BookOpen, CheckSquare, FileText } from "lucide-react";
-import { clusterColors, clusterMeta, LearnerDataPoint, ClusterName } from "@/data/masteryData";
+import { clusterColors, LearnerDataPoint, ClusterName, ThresholdConfig } from "@/data/masteryData";
 import { contentStore } from "@/data/contentStore";
 import { sendMassMessage } from "@/data/chatStore";
 import { toast } from "sonner";
@@ -19,11 +19,12 @@ interface Props {
   selectedClusters: string[];
   onToggleCluster: (cluster: string) => void;
   courseId: string;
+  thresholds: ThresholdConfig;
 }
 
 type ActionType = "message" | "retest" | "resources" | null;
 
-export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster, courseId }: Props) {
+export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster, courseId, thresholds }: Props) {
   const navigate = useNavigate();
   const [actionType, setActionType] = useState<ActionType>(null);
   const [messageText, setMessageText] = useState("");
@@ -45,6 +46,7 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
     : [];
   const hasRetestsForModule = retestQuizzesForModule.length > 0;
 
+  // --- Original Logic Restored ---
   const openRetestFlow = () => {
     if (selectedClusters.length === 0) {
       toast.error("Select at least one cluster first");
@@ -75,7 +77,7 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
       courseId,
       createdAt: new Date().toISOString(),
     });
-    const clusterNames = selectedClusters.map((c) => clusterMeta[c as ClusterName]?.label).join(", ");
+    const clusterNames = selectedClusters.map((c) => thresholds.labels[c as ClusterName]).join(", ");
     toast.success(`Retest assigned to ${uniqueNames.length} learners in: ${clusterNames}`);
     setActionType(null);
     setRetestModuleId("");
@@ -97,7 +99,7 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
   };
 
   const handleAction = () => {
-    const clusterNames = selectedClusters.map((c) => clusterMeta[c as ClusterName]?.label).join(", ");
+    const clusterNames = selectedClusters.map((c) => thresholds.labels[c as ClusterName]).join(", ");
 
     if (actionType === "message") {
       const trimmed = messageText.trim();
@@ -143,6 +145,29 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
     setSelectedResourceIds(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
   };
 
+  // Helper for color-matched badges in dialogs
+  const ClusterPills = () => (
+    <div className="flex flex-wrap gap-1.5 mb-4">
+      {selectedClusters.map((c) => {
+        const color = clusterColors[c as ClusterName];
+        return (
+          <Badge 
+            key={c} 
+            variant="outline"
+            className="text-xs rounded-full border px-2.5 py-0.5 font-medium"
+            style={{
+              backgroundColor: `${color}15`,
+              color: color,
+              borderColor: `${color}30`
+            }}
+          >
+            {thresholds.labels[c as ClusterName]} ({learners.filter((l) => l.cluster === c).length})
+          </Badge>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -157,51 +182,51 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
 
       {/* Cluster selectors */}
       <div className="flex flex-wrap gap-2">
-        {(Object.entries(clusterMeta) as [ClusterName, typeof clusterMeta[ClusterName]][]).map(([key, info]) => {
+        {(Object.keys(clusterColors) as ClusterName[]).map((key) => {
           const count = learners.filter((l) => l.cluster === key).length;
           const selected = selectedClusters.includes(key);
           return (
             <button key={key} onClick={() => onToggleCluster(key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm transition-all ${
-                selected ? "border-primary bg-primary/10 ring-1 ring-primary/30 shadow-glow" : "border-border/40 hover:border-muted-foreground/30 bg-card/50"
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all ${
+                selected ? "border-violet-600 bg-violet-50 ring-1 ring-violet-600/20 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
               }`}>
-              {selected && <CheckSquare className="h-3.5 w-3.5 text-primary" />}
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: clusterColors[key] }} />
-              <span className="font-medium">{info.label}</span>
-              <span className="text-muted-foreground">({count})</span>
+              {selected && <CheckSquare className="h-3.5 w-3.5 text-violet-700" />}
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: clusterColors[key] }} />
+              <span className="font-medium text-slate-900">{thresholds.labels[key]}</span>
+              <span className="text-slate-500 text-xs">({count})</span>
             </button>
           );
         })}
       </div>
 
-      {/* Action buttons — 3 actions: Mass Message, Create Retest, Assign Resources */}
+      {/* Action buttons */}
       {selectedClusters.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl hover:shadow-glow transition-all" onClick={() => setActionType("message")}>
-            <MessageCircle className="h-4 w-4 text-primary" />
+          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl border-slate-200 hover:bg-slate-50 hover:shadow-md transition-all" onClick={() => setActionType("message")}>
+            <MessageCircle className="h-4 w-4 text-violet-700" />
             <div className="text-left">
-              <p className="text-xs font-medium">Mass Message</p>
-              <p className="text-[10px] text-muted-foreground">Message all {uniqueNames.length} learners</p>
+              <p className="text-xs font-medium text-slate-900">Mass Message</p>
+              <p className="text-[10px] text-slate-500">Message all {uniqueNames.length} learners</p>
             </div>
           </Button>
-          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl hover:shadow-glow transition-all" onClick={openRetestFlow}>
-            <RotateCcw className="h-4 w-4 text-primary" />
+          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl border-slate-200 hover:bg-slate-50 hover:shadow-md transition-all" onClick={openRetestFlow}>
+            <RotateCcw className="h-4 w-4 text-violet-700" />
             <div className="text-left">
-              <p className="text-xs font-medium">Create / Assign Retest</p>
-              <p className="text-[10px] text-muted-foreground">Create or assign a retest for selected clusters</p>
+              <p className="text-xs font-medium text-slate-900">Create / Assign Retest</p>
+              <p className="text-[10px] text-slate-500">Create or assign a retest for selected clusters</p>
             </div>
           </Button>
-          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl hover:shadow-glow transition-all" onClick={openResourcesFlow}>
-            <BookOpen className="h-4 w-4 text-primary" />
+          <Button variant="outline" className="h-auto py-4 flex-col items-start gap-1.5 rounded-2xl border-slate-200 hover:bg-slate-50 hover:shadow-md transition-all" onClick={openResourcesFlow}>
+            <BookOpen className="h-4 w-4 text-violet-700" />
             <div className="text-left">
-              <p className="text-xs font-medium">Assign Resources</p>
-              <p className="text-[10px] text-muted-foreground">Module-specific remediation materials</p>
+              <p className="text-xs font-medium text-slate-900">Assign Resources</p>
+              <p className="text-[10px] text-slate-500">Module-specific remediation materials</p>
             </div>
           </Button>
         </div>
       )}
 
-      {/* Retest flow dialog */}
+      {/* Retest dialog */}
       <Dialog open={actionType === "retest"} onOpenChange={(open) => !open && (setActionType(null), setRetestModuleId(""), setSelectedRetestQuizId(""))}>
         <DialogContent className="rounded-3xl max-w-md">
           <DialogHeader>
@@ -209,18 +234,12 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
             <p className="text-xs text-muted-foreground mt-1">Create or assign a retest quiz for the selected clusters.</p>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-1.5">
-              {selectedClusters.map((c) => (
-                <Badge key={c} variant="secondary" className="text-xs rounded-full">
-                  {clusterMeta[c as ClusterName]?.label} ({learners.filter((l) => l.cluster === c).length})
-                </Badge>
-              ))}
-            </div>
+            <ClusterPills />
             <p className="text-sm text-muted-foreground">
               Applies to <strong className="text-foreground">{uniqueNames.length}</strong> learners
             </p>
             <div className="space-y-2">
-              <Label className="text-sm">Target module</Label>
+              <Label className="text-sm font-medium">Target module</Label>
               <Select value={retestModuleId} onValueChange={(v) => { setRetestModuleId(v); setSelectedRetestQuizId(""); }}>
                 <SelectTrigger className="rounded-full">
                   <SelectValue placeholder="Select module" />
@@ -236,11 +255,11 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
               <>
                 {hasRetestsForModule ? (
                   <div className="space-y-2">
-                    <Label className="text-sm">Existing retest quiz</Label>
+                    <Label className="text-sm font-medium">Existing retest quiz</Label>
                     <ScrollArea className="max-h-40">
                       <div className="space-y-1.5">
                         {retestQuizzesForModule.map((q) => (
-                          <label key={q.id} className="flex items-center gap-3 rounded-xl border border-border/40 p-3 cursor-pointer hover:bg-accent/30 transition-colors">
+                          <label key={q.id} className="flex items-center gap-3 rounded-xl border border-border/40 p-3 cursor-pointer hover:bg-slate-50 transition-colors">
                             <Checkbox
                               checked={selectedRetestQuizId === q.id}
                               onCheckedChange={() => setSelectedRetestQuizId(selectedRetestQuizId === q.id ? "" : q.id)}
@@ -253,7 +272,6 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
                         ))}
                       </div>
                     </ScrollArea>
-                    <p className="text-xs text-muted-foreground">Select one to assign to the selected clusters.</p>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-4 text-center">
@@ -261,21 +279,16 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
                     <Button variant="outline" size="sm" className="mt-3 rounded-full" onClick={navigateToCreateRetest}>
                       Create new retest quiz
                     </Button>
-                    <p className="text-xs text-muted-foreground mt-2">You&apos;ll create the quiz on the Content page, then return here to assign it.</p>
                   </div>
                 )}
               </>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setActionType(null); setRetestModuleId(""); setSelectedRetestQuizId(""); }} className="rounded-full">Cancel</Button>
-            {hasRetestsForModule ? (
+            <Button variant="ghost" onClick={() => setActionType(null)} className="rounded-full">Cancel</Button>
+            {hasRetestsForModule && (
               <Button onClick={assignRetestToClusters} disabled={!selectedRetestQuizId} className="rounded-full">
                 Assign Retest
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={navigateToCreateRetest} className="rounded-full">
-                Go to Content to create retest
               </Button>
             )}
           </DialogFooter>
@@ -289,14 +302,8 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
             <DialogTitle>Send Message to Learners</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-1.5">
-              {selectedClusters.map((c) => (
-                <Badge key={c} variant="secondary" className="text-xs rounded-full">
-                  {clusterMeta[c as ClusterName]?.label} ({learners.filter((l) => l.cluster === c).length})
-                </Badge>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
+            <ClusterPills />
+            <p className="text-sm text-muted-foreground leading-relaxed">
               This action will apply to <strong className="text-foreground">{uniqueNames.length}</strong> learners:{" "}
               {uniqueNames.slice(0, 5).join(", ")}
               {uniqueNames.length > 5 && ` and ${uniqueNames.length - 5} more`}
@@ -306,7 +313,7 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               rows={4}
-              className="rounded-2xl"
+              className="rounded-2xl border-slate-200"
             />
           </div>
           <DialogFooter>
@@ -316,30 +323,19 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
         </DialogContent>
       </Dialog>
 
-      {/* Resources dialog — module-specific */}
+      {/* Resources dialog */}
       <Dialog open={actionType === "resources"} onOpenChange={(open) => !open && setActionType(null)}>
         <DialogContent className="rounded-3xl">
           <DialogHeader>
             <DialogTitle>Assign Resources to Learners</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-1.5">
-              {selectedClusters.map((c) => (
-                <Badge key={c} variant="secondary" className="text-xs rounded-full">
-                  {clusterMeta[c as ClusterName]?.label} ({learners.filter((l) => l.cluster === c).length})
-                </Badge>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              This action will apply to <strong className="text-foreground">{uniqueNames.length}</strong> learners
-            </p>
-
-            {/* Module selector */}
+            <ClusterPills />
             <div className="space-y-2">
-              <Label className="text-sm">Target module</Label>
+              <Label className="text-sm font-medium">Target module</Label>
               <Select value={resourceModuleId} onValueChange={(v) => { setResourceModuleId(v); setSelectedResourceIds([]); }}>
-                <SelectTrigger className="rounded-full">
-                  <SelectValue placeholder="Select module first" />
+                <SelectTrigger className="rounded-full border-slate-200">
+                  <SelectValue placeholder="Select module" />
                 </SelectTrigger>
                 <SelectContent>
                   {courseModules.map((m) => (
@@ -348,36 +344,23 @@ export function ClusterBulkActions({ learners, selectedClusters, onToggleCluster
                 </SelectContent>
               </Select>
             </div>
-
             {resourceModuleId && (
-              <div className="space-y-3">
-                {resourcesForModule.length === 0 ? (
-                  <div className="rounded-2xl border border-border/40 p-4 text-center bg-accent/10">
-                    <p className="text-sm text-muted-foreground">No resources available for this module. Create resources in the Content page first.</p>
-                    <Button size="sm" variant="outline" className="mt-2 rounded-full" onClick={() => { setActionType(null); navigate("/admin/content"); }}>
-                      Go to Content
-                    </Button>
-                  </div>
-                ) : (
-                  <ScrollArea className="max-h-60">
-                    <div className="space-y-2">
-                      {resourcesForModule.map(r => (
-                        <label key={r.id} className="flex items-center gap-3 rounded-2xl border border-border/40 p-3 cursor-pointer hover:bg-accent/30 transition-colors">
-                          <Checkbox
-                            checked={selectedResourceIds.includes(r.id)}
-                            onCheckedChange={() => toggleResource(r.id)}
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-foreground">{r.title}</p>
-                            <p className="text-xs text-muted-foreground">{r.fileName} · {r.isOptional ? "Optional" : "Required"}</p>
-                          </div>
-                          <Badge variant="outline" className="text-[10px] rounded-full">{r.fileType.toUpperCase()}</Badge>
-                        </label>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-              </div>
+              <ScrollArea className="max-h-60">
+                <div className="space-y-2">
+                  {resourcesForModule.map(r => (
+                    <label key={r.id} className="flex items-center gap-3 rounded-2xl border border-border/40 p-3 cursor-pointer hover:bg-slate-50 transition-colors">
+                      <Checkbox
+                        checked={selectedResourceIds.includes(r.id)}
+                        onCheckedChange={() => toggleResource(r.id)}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{r.title}</p>
+                        <p className="text-xs text-muted-foreground">{r.fileName}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </div>
           <DialogFooter>

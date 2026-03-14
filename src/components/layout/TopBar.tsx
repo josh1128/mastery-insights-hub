@@ -5,26 +5,32 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border/30 bg-card/60 backdrop-blur-xl px-6">
-      <SidebarTrigger className="mr-2" />
-      <div className="flex-1 max-w-xl">
+    <header className="sticky top-0 z-30 flex h-16 items-center border-b border-slate-200 bg-white/95 backdrop-blur-sm px-6">
+      <SidebarTrigger className="mr-1 sm:mr-2 shrink-0" />
+      
+      {/* Search Container */}
+      <div className="flex-1 min-w-0 max-w-xl">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search anything..."
-            className="pl-10 bg-muted/40 border-0 h-10 rounded-full focus:bg-card focus:shadow-glass transition-all"
+            className="w-full pl-10 bg-muted/40 border-0 h-9 sm:h-10 text-sm sm:text-base rounded-full focus:bg-card focus:shadow-sm transition-all"
           />
         </div>
       </div>
-      <div className="flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full hover:bg-accent/60">
-          <Bell className="h-4 w-4" />
+      
+      {/* Action Buttons - Notice the 'ml-auto' added here! */}
+      <div className="ml-auto flex items-center gap-1 sm:gap-3 shrink-0">
+        <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full hover:bg-slate-100">
+          <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full hover:bg-accent/60">
-          <HelpCircle className="h-4 w-4" />
+        
+        <Button variant="ghost" size="icon" className="hidden sm:inline-flex text-muted-foreground rounded-full hover:bg-slate-100">
+          <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5" />
         </Button>
-        <div className="ml-2 h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-glow">
-          <span className="text-primary-foreground text-xs font-bold">JD</span>
+        
+        <div className="ml-1 sm:ml-2 h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full bg-slate-900 flex items-center justify-center text-xs font-bold text-white">
+          JD
         </div>
       </div>
     </header>

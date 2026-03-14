@@ -29,7 +29,7 @@ export const DashboardHeader = ({ userName, stats }: DashboardHeaderProps) => {
       </div>
 
       {/* STATS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((s) => (
           <Card key={s.label} className="group cursor-default">
             <CardContent className="p-6">

@@ -6,7 +6,6 @@ export const dashboardStats = [
   { label: "Total Members", value: members.length.toString(), icon: Users, change: "+12%" },
   { label: "Active Courses", value: courses.length.toString(), icon: BookOpen, change: `${courses.length} active` },
   { label: "Avg Mastery", value: "78%", icon: TrendingUp, change: "+5%" },
-  { label: "Certificates Issued", value: "342", icon: Award, change: "+28" },
 ];
 
 export const masteryTrendData = [

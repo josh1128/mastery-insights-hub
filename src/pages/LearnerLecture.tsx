@@ -24,7 +24,7 @@ export default function LearnerLecture() {
   if (!lecture) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <Link to="/admin/content" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+        <Link to="/learner/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Link>
         <p className="text-muted-foreground">Lecture not found.</p>
@@ -34,7 +34,7 @@ export default function LearnerLecture() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
-      <Link to="/admin/content" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+      <Link to="/learner/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4 mr-1" /> Back to Content
       </Link>
 
@@ -65,7 +65,7 @@ export default function LearnerLecture() {
           {!completed && (
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">Watch the full lecture to unlock the quiz.</p>
-              <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setCompleted(true); contentStore.completeLecture("demo-learner", lecture.id); }}>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setCompleted(true); contentStore.completeLecture("member-marcus", lecture.id); }}>
                 Mark as Complete
               </Button>
             </div>

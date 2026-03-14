@@ -79,7 +79,7 @@ export default function MarcusChat() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-sm font-bold text-slate-900">Elena (Instructor)</p>
+            <p className="text-sm font-bold text-slate-900"> Josh (Instructor)</p>
             <p className="text-[10px] text-emerald-500 uppercase tracking-widest font-bold">• Active</p>
           </div>
         </div>

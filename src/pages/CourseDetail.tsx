@@ -168,7 +168,7 @@ const CourseDetail = () => {
                                             <TooltipContent>Complete all lectures in this module first</TooltipContent>
                                           </Tooltip>
                                         ) : (
-                                          <Link to={`/learn/quiz/${quiz.id}`}>
+                                            <Link to={`/learn/quiz/${quiz.id}?return=/courses/${course.id}`}>
                                             <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
                                           </Link>
                                         )}

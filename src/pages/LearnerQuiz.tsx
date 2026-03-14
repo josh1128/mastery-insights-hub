@@ -21,8 +21,8 @@ const confidenceLabels: Record<string, string> = {
 const confidenceOrder: ConfidenceLevel[] = ["not-sure", "unsure", "confident"];
 
 export default function LearnerQuiz() {
-  const { quizId } = useParams();
-  const quiz = contentStore.getQuiz(quizId || "");
+    const { id } = useParams();
+    const quiz = contentStore.getQuiz(id || "");
   const learnerId = "member-1";
 
   const relatedLectures = quiz

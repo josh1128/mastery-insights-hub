@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
 
 export default function LearnerLecture() {
-  const { lectureId } = useParams();
-  const lecture = contentStore.getVideoLecture(lectureId || "");
+    const { id } = useParams();
+    const lecture = contentStore.getVideoLecture(id || "");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [completed, setCompleted] = useState(false);
 

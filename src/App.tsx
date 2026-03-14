@@ -18,8 +18,12 @@ import LearnerQuiz from "./pages/LearnerQuiz";
 import LearnerLecture from "./pages/LearnerLecture";
 import { LearnerLayout } from "@/components/layout/LearnerLayout";
 import MarcusDashboard from "@/pages/learner/MarcusDashboard";
+import MarcusCourses from "@/pages/learner/MarcusCourses";
+import MarcusCoursesDetails from "@/pages/learner/MarcusCoursesDetails";
+import MarcusChat from "@/pages/learner/MarcusChat";
 
 const queryClient = new QueryClient();
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -28,7 +32,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* INSTRUCTOR ROUTES: These use the standard AppLayout */}
+            {/* INSTRUCTOR ROUTES */}
             <Route element={<AppLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/courses" element={<CoursesPage />} />
@@ -40,10 +44,31 @@ const App = () => (
               <Route path="/insights/mastery" element={<MasteryPage />} />
             </Route>
 
-            {/* Change this part in your App.tsx */}
+            {/* LEARNER ROUTES */}
             <Route path="/learner" element={<LearnerLayout />}>
-              <Route path="/learner/dashboard" element={<MarcusDashboard />} />
+              <Route path="dashboard" element={<MarcusDashboard />} />
+              <Route path="quiz/:id" element={<LearnerQuiz />} />
+              <Route path="courses" element={<MarcusCourses />} />
+              <Route path="courses/:id" element={<MarcusCoursesDetails />} />
+              <Route path="lecture/:id" element={<LearnerLecture />} />
+              <Route path="chat" element={<MarcusChat />} />
             </Route>
+
+            <Route element={<AppLayout />}>
+  ...existing routes...
+  <Route path="/learn/quiz/:id" element={<LearnerQuiz />} />
+  <Route path="/learn/lecture/:id" element={<LearnerLecture />} />
+</Route>
+
+
+
+            <Route path="/learner" element={<LearnerLayout />}>
+  <Route path="dashboard" element={<MarcusDashboard />} />
+
+  <Route path="quiz" element={<LearnerQuiz />} />
+  <Route path="lecture" element={<LearnerLecture />} />
+</Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

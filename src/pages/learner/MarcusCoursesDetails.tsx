@@ -9,14 +9,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { getCourse } from "@/data/courses";
 import { members } from "@/data/members";
 import { contentStore } from "@/data/contentStore";
-import { PageGlow } from "@/components/decorative/PageDecorations";
 import { getClusterContentForModule } from "@/lib/clusterModuleContent";
 import { clusterColors, clusterMeta, type ClusterName } from "@/data/masteryData";
 import { ClusterSelector } from "@/components/course/ClusterSelector";
 import { ResourcePreviewModal } from "@/components/course/ResourcePreviewModal";
 import type { Resource } from "@/data/contentStore";
 
-const CourseDetail = () => {
+const MarcusCourseDetail = () => {
   const { id } = useParams();
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [selectedClusterByModule, setSelectedClusterByModule] = useState<Record<string, ClusterName>>({});
@@ -29,14 +28,12 @@ const CourseDetail = () => {
     return () => { unsub(); };
   }, []);
 
-  
-
   const course = getCourse(id || "");
   if (!course) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <Link to="/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Courses
+        <Link to="/learner/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to My Courses
         </Link>
         <p className="text-muted-foreground">Course not found.</p>
       </div>
@@ -56,8 +53,8 @@ const CourseDetail = () => {
   return (
     <div className="space-y-8 animate-fade-in relative">
       <div className="relative z-10 space-y-8">
-        <Link to="/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Courses
+        <Link to="/learner/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back to My Courses
         </Link>
 
         <div className="h-48 rounded-3xl bg-indigo-50 flex items-end p-8 relative overflow-hidden border border-border">
@@ -86,7 +83,7 @@ const CourseDetail = () => {
               <CardContent>
                 {courseModules.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground text-sm">
-                    No modules yet. Add content from the <Link to="/admin/content" className="text-primary underline">Content</Link> page.
+                    No modules available yet.
                   </div>
                 ) : (
                   <Accordion type="multiple" className="space-y-2">
@@ -118,7 +115,6 @@ const CourseDetail = () => {
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            {/* Cluster selector */}
                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3 border-b border-border/40 mb-4">
                               <span className="text-xs text-muted-foreground">Viewing module as:</span>
                               <ClusterSelector value={cluster} onValueChange={setCluster} />
@@ -127,7 +123,6 @@ const CourseDetail = () => {
                               </Badge>
                             </div>
 
-                            {/* All Content section */}
                             <div className="space-y-1">
                               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">All Content</h4>
                               {baseCount === 0 ? (
@@ -141,7 +136,7 @@ const CourseDetail = () => {
                                         <span>{vid.title}</span>
                                         <Badge variant="outline" className="text-[9px] rounded-full">Video</Badge>
                                       </div>
-                                      <Link to={`/learn/lecture/${vid.id}`}>
+                                      <Link to={`/learner/lecture/${vid.id}`}>
                                         <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
                                       </Link>
                                     </li>
@@ -168,7 +163,7 @@ const CourseDetail = () => {
                                             <TooltipContent>Complete all lectures in this module first</TooltipContent>
                                           </Tooltip>
                                         ) : (
-                                          <Link to={`/learn/quiz/${quiz.id}`}>
+                                            <Link to={`/learner/quiz/${quiz.id}`}>
                                             <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
                                           </Link>
                                         )}
@@ -192,7 +187,6 @@ const CourseDetail = () => {
                               )}
                             </div>
 
-                            {/* Additional Resources for this Cluster */}
                             <div className="mt-6 pt-4 border-t border-border/40">
                               <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                 Additional Resources for this Cluster
@@ -235,7 +229,7 @@ const CourseDetail = () => {
                                         <span>{clusterAdditions.retestQuiz.title}</span>
                                         <Badge variant="outline" className="text-[9px] rounded-full">Retest</Badge>
                                       </div>
-                                      <Link to={`/learn/quiz/${clusterAdditions.retestQuiz.id}`}>
+                                      <Link to={`/learner/quiz/${clusterAdditions.retestQuiz.id}`}>
                                         <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full"><Play className="h-3 w-3" /></Button>
                                       </Link>
                                     </div>
@@ -298,4 +292,4 @@ const CourseDetail = () => {
   );
 };
 
-export default CourseDetail;
+export default MarcusCourseDetail;

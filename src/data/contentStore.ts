@@ -229,14 +229,70 @@ class ContentStore {
     }
   }
 
+  // Save all current data to LocalStorage to persist across refreshes
+  private saveToDisk() {
+    try {
+      const data = {
+        quizzes: this.quizzes,
+        videoLectures: this.videoLectures,
+        resources: this.resources,
+        interventions: this.interventions,
+        lectureCompletions: this.lectureCompletions,
+        quizResults: this.quizResults,
+        teachBackScores: this.teachBackScores,
+      };
+      localStorage.setItem("mastery_hub_data", JSON.stringify(data));
+      this.notify(); // Ensure UI updates across all components
+    } catch (e) {
+      console.error("Failed to save data to disk", e);
+    }
+  }
+
+  // You also need a method to LOAD that data when the app starts
+  private loadFromDisk() {
+    try {
+      const saved = localStorage.getItem("mastery_hub_data");
+      if (saved) {
+        const data = JSON.parse(saved);
+        this.quizzes = data.quizzes || [];
+        this.videoLectures = data.videoLectures || [];
+        this.resources = data.resources || [];
+        this.interventions = data.interventions || [];
+        this.lectureCompletions = data.lectureCompletions || [];
+        this.quizResults = data.quizResults || [];
+        this.teachBackScores = data.teachBackScores || [];
+      }
+    } catch (e) {
+      console.warn("Could not load data from disk, starting fresh.");
+    }
+  }
+  
   // Quiz results + mastery source of truth
   recordQuizResult(result: QuizResult) {
-    // Remove any existing result from the same learner + quiz so latest wins
-    this.quizResults = this.quizResults.filter(
-      r => !(r.learnerId === result.learnerId && r.quizId === result.quizId),
+    // 1. Find if there's already a result for this learner + module
+    const existingIndex = this.quizResults.findIndex(
+      (r) => r.learnerId === result.learnerId && r.moduleId === result.moduleId
     );
-    this.quizResults.push(result);
-    this.notify();
+  
+    if (result.isRetest && existingIndex !== -1) {
+      // 2. REPLACE: Update the existing record with the new retest data
+      // We keep the original ID but update scores and confidence
+      this.quizResults[existingIndex] = {
+        ...this.quizResults[existingIndex],
+        score: result.score,
+        averageConfidence: result.averageConfidence,
+        submittedAt: result.submittedAt,
+        isRetest: true // Mark that this is now a retest-driven score
+      };
+      
+      console.log("Mastery updated: Retest score replaced original.");
+    } else {
+      // 3. NEW: If it's the first time or not a retest, just push it
+      this.quizResults.push(result);
+    }
+    
+    // Save to your database or localStorage
+    this.saveToDisk();
   }
 
   /**

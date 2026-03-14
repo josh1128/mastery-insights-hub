@@ -51,20 +51,17 @@ const CourseDetail = () => {
 
   return (
     <div className="space-y-8 animate-fade-in relative">
-      <PageGlow />
       <div className="relative z-10 space-y-8">
         <Link to="/courses" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Courses
         </Link>
 
-        <div className="h-48 bg-gradient-to-br from-primary via-primary-glow to-primary rounded-3xl flex items-end p-8 relative overflow-hidden shadow-glow-lg">
-          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full border border-primary-foreground/10" />
-          <div className="absolute -bottom-16 -right-16 w-56 h-56 rounded-full border border-primary-foreground/5" />
+        <div className="h-48 rounded-3xl bg-indigo-50 flex items-end p-8 relative overflow-hidden border border-border">
           <div className="relative z-10">
-            <h1 className="text-2xl font-bold text-primary-foreground">{course.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{course.name}</h1>
             <div className="flex items-center gap-3 mt-2">
-              <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 rounded-full">{course.category}</Badge>
-              <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 rounded-full">{course.status}</Badge>
+              <Badge className="bg-indigo-100 text-indigo-700 border-0 rounded-full">{course.category}</Badge>
+              <Badge className="bg-indigo-100 text-indigo-700 border-0 rounded-full">{course.status}</Badge>
             </div>
           </div>
         </div>
@@ -134,7 +131,7 @@ const CourseDetail = () => {
                               ) : (
                                 <ul className="space-y-1.5">
                                   {baseContent.videos.map(vid => (
-                                    <li key={vid.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
+                                    <li key={vid.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-indigo-50">
                                       <div className="flex items-center gap-2">
                                         <Video className="h-3.5 w-3.5 text-primary" />
                                         <span>{vid.title}</span>
@@ -149,7 +146,7 @@ const CourseDetail = () => {
                                     const isLocked = !lecturesCompleted;
                                     return (
                                       <li key={quiz.id} className={`flex items-center justify-between text-sm py-2 pl-3 pr-1 border-l-2 rounded-r-lg transition-colors ${
-                                        isLocked ? "text-muted-foreground/50 border-border" : "text-muted-foreground border-primary/20 hover:border-primary hover:text-foreground hover:bg-accent/30"
+                                        isLocked ? "text-muted-foreground/50 border-border" : "text-muted-foreground border-primary/20 hover:border-primary hover:text-foreground hover:bg-indigo-50"
                                       }`}>
                                         <div className="flex items-center gap-2">
                                           {isLocked ? <Lock className="h-3.5 w-3.5 text-muted-foreground/50" /> : <FileText className="h-3.5 w-3.5 text-primary" />}
@@ -175,7 +172,7 @@ const CourseDetail = () => {
                                     );
                                   })}
                                   {baseContent.resources.map(res => (
-                                    <li key={res.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-accent/30">
+                                    <li key={res.id} className="flex items-center justify-between text-sm text-muted-foreground py-2 pl-3 pr-1 border-l-2 border-primary/20 hover:border-primary hover:text-foreground transition-colors rounded-r-lg hover:bg-indigo-50">
                                       <button
                                         type="button"
                                         onClick={() => setResourcePreview(res)}

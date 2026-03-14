@@ -5,14 +5,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clusterColors, clusterMeta, type ClusterName } from "@/data/masteryData";
+import { clusterColors, defaultThresholds, type ClusterName } from "@/data/masteryData";
 
 const clusterKeys: ClusterName[] = [
   "mastery",
-  "guessing",
-  "misconception",
+  "overconfident",
+  "underconfident",
   "struggling",
-  "developing",
 ];
 
 interface Props {
@@ -42,7 +41,7 @@ export function ClusterSelector({ value, onValueChange, className }: Props) {
                   className="h-2 w-2 rounded-full shrink-0"
                   style={{ backgroundColor: clusterColors[key] }}
                 />
-                {clusterMeta[key].label}
+                {defaultThresholds.labels[key]}
               </span>
             </SelectItem>
           ))}

@@ -21,28 +21,30 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/courses/:id" element={<CourseDetail />} />
-            <Route path="/chat" element={<ChatPage />} />
-            <Route path="/admin/members" element={<MembersPage />} />
-            <Route path="/admin/content" element={<ContentPage />} />
-            <Route path="/admin/automations" element={<AutomationsPage />} />
-            <Route path="/insights/engagement" element={<EngagementPage />} />
-            <Route path="/insights/mastery" element={<MasteryPage />} />
-            <Route path="/learn/quiz/:quizId" element={<LearnerQuiz />} />
-            <Route path="/learn/lecture/:lectureId" element={<LearnerLecture />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
-      </BrowserRouter>
-    </TooltipProvider>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/courses/:id" element={<CourseDetail />} />
+              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/admin/members" element={<MembersPage />} />
+              <Route path="/admin/content" element={<ContentPage />} />
+              <Route path="/admin/automations" element={<AutomationsPage />} />
+              <Route path="/insights/engagement" element={<EngagementPage />} />
+              <Route path="/insights/mastery" element={<MasteryPage />} />
+              <Route path="/learn/quiz/:quizId" element={<LearnerQuiz />} />
+              <Route path="/learn/lecture/:lectureId" element={<LearnerLecture />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppLayout>
+        </BrowserRouter>
+      </TooltipProvider>
+    </div>
   </QueryClientProvider>
 );
 

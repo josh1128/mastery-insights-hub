@@ -84,7 +84,7 @@ const ChatPage = () => {
           <ScrollArea className="flex-1">
             {filteredConversations.map(conv => (
               <button key={conv.id}
-                className={`w-full text-left p-3 border-b border-border/20 transition-colors hover:bg-accent/40 ${selectedId === conv.id ? "bg-accent/60" : ""}`}
+                className={`w-full text-left p-3 border-b border-border/20 transition-colors hover:bg-slate-50 ${selectedId === conv.id ? "bg-indigo-50" : ""}`}
                 onClick={() => { setSelectedId(conv.id); setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unread: 0 } : c)); }}>
                 <div className="flex items-start gap-3">
                   <div className="relative">

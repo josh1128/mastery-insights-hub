@@ -1,63 +1,50 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 230 25% 97%;
-    --foreground: 230 25% 10%;
+:root {
+  /* 1. MANUAL EDIT: Increased global radius from standard to 1rem (16px) */
+  --radius: 1rem; 
 
-    --card: 0 0% 100%;
-    --card-foreground: 230 25% 10%;
+  /* Page: clean off-white */
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 230 25% 10%;
+  /* Surfaces: pure white cards and overlays */
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
 
-    --primary: 240 70% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-glow: 260 72% 65%;
+  /* Borders & inputs */
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 263 70% 50%;
 
-    --secondary: 230 25% 95%;
-    --secondary-foreground: 230 25% 18%;
+  /* Primary: rich dark purple */
+  --primary: 263 70% 50%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 258 90% 66%;
 
-    --muted: 230 20% 94%;
-    --muted-foreground: 230 15% 50%;
+  /* Muted */
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
 
-    --accent: 240 60% 96%;
-    --accent-foreground: 240 60% 45%;
+  /* Sidebar: premium graphite (zinc-800) */
+  /* Deeper Graphite - more 'ink' than 'navy' */
+  --sidebar: 240 10% 4%;            
+  /* Soft Silver/Grey instead of white */
+  --sidebar-foreground: 215 20% 75%; 
+  /* Subtle border to define the edge */
+  --sidebar-border: 240 5% 12%;      
+  /* Active state background */
+  --sidebar-accent: 240 5% 15%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 160 84% 39%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --border: 230 20% 90%;
-    --input: 230 20% 90%;
-    --ring: 240 70% 60%;
-
-    --radius: 0.2rem;
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 230 20% 30%;
-    --sidebar-primary: 240 70% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 60% 96%;
-    --sidebar-accent-foreground: 240 60% 45%;
-    --sidebar-border: 230 20% 92%;
-    --sidebar-ring: 240 70% 60%;
-
-    --chart-primary: 240 70% 60%;
-    --chart-success: 160 84% 39%;
-    --chart-warning: 38 92% 50%;
-    --chart-danger: 0 72% 51%;
-    --chart-info: 210 92% 55%;
-  }
+  /* Semantic learner cluster colors */
+  --cluster-mastery: 160 84% 39%;
+  --cluster-overconfident: 347 77% 50%;
+  --cluster-underconfident: 199 89% 48%;
+  --cluster-struggling: 38 92% 50%;
 }
 
 @layer base {
@@ -66,55 +53,40 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', sans-serif;
+    @apply antialiased;
+    margin: 0;
+    min-height: 100vh;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight text-slate-900 font-bold;
+  }
+
+  p {
+    @apply leading-relaxed text-slate-600;
   }
 }
 
-@layer utilities {
-  .scrollbar-thin {
-    scrollbar-width: thin;
+@layer components {
+  /* 2. MANUAL EDIT: Bento cards now use rounded-3xl (24px) for a much softer feel */
+  .bento-card {
+    @apply bg-white rounded-[2rem] border border-slate-200/60 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
   }
 
-  .bg-gradient-mesh {
-    background: 
-      radial-gradient(ellipse 80% 50% at 20% 100%, hsl(240 70% 60% / 0.06), transparent),
-      radial-gradient(ellipse 60% 40% at 85% 10%, hsl(260 72% 65% / 0.08), transparent),
-      radial-gradient(ellipse 50% 60% at 95% 90%, hsl(220 80% 60% / 0.05), transparent),
-      hsl(var(--background));
-  }
-
-  .glass-card {
-    @apply bg-card/80 backdrop-blur-md border border-border/40 shadow-glass;
-  }
-
+  /* 3. MANUAL EDIT: Ensuring overlays are solid white and extra rounded */
   .glass-panel {
-    background: hsla(0, 0%, 100%, 0.65);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid hsl(var(--border) / 0.4);
+    @apply bg-white rounded-[1.5rem] border border-slate-200 shadow-2xl ring-1 ring-black/5;
   }
+  
+  /* 4. MANUAL EDIT: Added pill-shape utility for your search and buttons */
+  .pill-shape {
+    @apply rounded-full;
+  }
+}
 
-  .shadow-soft {
-    box-shadow: 0 1px 3px 0 hsl(240 70% 60% / 0.04), 0 4px 16px -2px hsl(240 70% 60% / 0.06);
-  }
-
-  .shadow-elevated {
-    box-shadow: 0 2px 8px -2px hsl(240 70% 60% / 0.08), 0 8px 24px -4px hsl(240 70% 60% / 0.1);
-  }
-
-  .shadow-glass {
-    box-shadow: 
-      0 1px 2px hsl(240 70% 60% / 0.03),
-      0 4px 12px -2px hsl(240 70% 60% / 0.06),
-      inset 0 1px 0 hsl(0 0% 100% / 0.5);
-  }
-
-  .shadow-glow {
-    box-shadow: 0 0 20px -4px hsl(240 70% 60% / 0.15), 0 0 40px -8px hsl(260 72% 65% / 0.1);
-  }
-
-  .shadow-glow-lg {
-    box-shadow: 0 0 40px -8px hsl(240 70% 60% / 0.2), 0 0 80px -16px hsl(260 72% 65% / 0.15);
-  }
+.bg-mesh-gradient {
+  background-color: hsl(var(--background));
 }

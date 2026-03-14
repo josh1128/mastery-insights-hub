@@ -1,47 +1,61 @@
-import { Brain, AlertTriangle, TrendingDown, Eye, Sparkles } from "lucide-react";
+import { Brain, AlertTriangle, TrendingDown, Eye } from "lucide-react";
 import { members, getMemberModuleData } from "./members";
 import { courses } from "./courses";
 
 // --- Threshold config ---
 export interface ThresholdConfig {
-  masteryMinConfidence: number;
-  masteryMinScore: number;
-  guessingMaxConfidence: number;
-  guessingMinScore: number;
-  misconceptionMinConfidence: number;
-  misconceptionMaxScore: number;
-  strugglingMaxConfidence: number;
-  strugglingMaxScore: number;
+  scoreThreshold: number;
+  confidenceThreshold: number;
+  labels: Record<ClusterName, string>;
 }
 
-export const defaultThresholds: ThresholdConfig = {
-  masteryMinConfidence: 60,
-  masteryMinScore: 60,
-  guessingMaxConfidence: 40,
-  guessingMinScore: 60,
-  misconceptionMinConfidence: 60,
-  misconceptionMaxScore: 40,
-  strugglingMaxConfidence: 40,
-  strugglingMaxScore: 40,
-};
-
 // --- Cluster types ---
-export type ClusterName = "mastery" | "guessing" | "misconception" | "struggling" | "developing";
+export type ClusterName = "mastery" | "overconfident" | "underconfident" | "struggling";
 
-export const clusterColors: Record<ClusterName, string> = {
-  mastery: "hsl(var(--chart-success))",
-  guessing: "hsl(var(--chart-info))",
-  misconception: "hsl(var(--chart-danger))",
-  struggling: "hsl(var(--chart-warning))",
-  developing: "hsl(var(--chart-primary))",
+export const defaultThresholds: ThresholdConfig = {
+  scoreThreshold: 65,
+  confidenceThreshold: 65,
+  labels: {
+    mastery: "Mastery",
+    overconfident: "Overconfident",
+    underconfident: "Underconfident",
+    struggling: "Struggling",
+  }
 };
 
-export const clusterMeta: Record<ClusterName, { label: string; icon: typeof Brain; desc: string; colorClass: string }> = {
-  mastery: { label: "True Mastery", icon: Brain, desc: "High confidence + high score", colorClass: "text-success" },
-  guessing: { label: "Possible Guessing", icon: Eye, desc: "Low confidence + high score", colorClass: "text-chart-info" },
-  misconception: { label: "Misconception Risk", icon: AlertTriangle, desc: "High confidence + low score", colorClass: "text-destructive" },
-  struggling: { label: "Struggling", icon: TrendingDown, desc: "Low confidence + low score", colorClass: "text-warning" },
-  developing: { label: "Developing", icon: Sparkles, desc: "Near threshold (transition zone)", colorClass: "text-primary" },
+/* Semantic learner cluster colors (exact across app: badges, charts, text) */
+export const clusterColors: Record<ClusterName, string> = {
+  mastery: "#10b981",         /* Emerald/Green — Confident & Correct */
+  overconfident: "#3b82f6",   /* Blue — Confident & Wrong */
+  underconfident: "#eab308",  /* Yellow — Unsure & Correct */
+  struggling: "#ef4444",      /* Red — Unsure & Wrong */
+};
+
+export const clusterMeta: Record<ClusterName, { icon: any; desc: string; characteristics: string; colorClass: string }> = {
+  mastery: { 
+    icon: Brain, 
+    desc: "Confident & Correct", 
+    characteristics: "Demonstrates deep understanding. Ready to advance to new topics or mentor peers.", 
+    colorClass: "text-success" 
+  },
+  overconfident: { 
+    icon: AlertTriangle, 
+    desc: "Confident & Wrong", 
+    characteristics: "High risk learner. Holds strong misconceptions that need active unlearning and targeted feedback.", 
+    colorClass: "text-destructive" 
+  },
+  underconfident: { 
+    icon: Eye, 
+    desc: "Unsure & Correct", 
+    characteristics: "Has the requisite knowledge but lacks self-belief. Needs positive reinforcement and practice.", 
+    colorClass: "text-chart-info" 
+  },
+  struggling: { 
+    icon: TrendingDown, 
+    desc: "Unsure & Wrong", 
+    characteristics: "Self-aware of their knowledge gaps. Needs foundational reteaching and step-by-step support.", 
+    colorClass: "text-warning" 
+  },
 };
 
 // --- Student data point ---
@@ -55,11 +69,13 @@ export interface LearnerDataPoint {
 
 // --- Classification ---
 export function classifyStudent(s: { confidence: number; score: number }, t: ThresholdConfig): ClusterName {
-  if (s.score >= t.masteryMinScore && s.confidence >= t.masteryMinConfidence) return "mastery";
-  if (s.score >= t.guessingMinScore && s.confidence <= t.guessingMaxConfidence) return "guessing";
-  if (s.score <= t.misconceptionMaxScore && s.confidence >= t.misconceptionMinConfidence) return "misconception";
-  if (s.score <= t.strugglingMaxScore && s.confidence <= t.strugglingMaxConfidence) return "struggling";
-  return "developing";
+  const isCorrect = s.score >= t.scoreThreshold;
+  const isConfident = s.confidence >= t.confidenceThreshold;
+
+  if (isCorrect && isConfident) return "mastery";
+  if (!isCorrect && isConfident) return "overconfident";
+  if (isCorrect && !isConfident) return "underconfident";
+  return "struggling";
 }
 
 /**
@@ -106,4 +122,88 @@ export function getLearnerDataForModule(
       cluster: classifyStudent(data, thresholds),
     };
   });
+}
+
+// ============================================================================
+// DRILL-DOWN CHART DATA GENERATORS
+// ============================================================================
+
+export interface BarChartDataPoint {
+  name: string;
+  rate: number;
+}
+
+export interface PieChartDataPoint {
+  name: string;
+  value: number;
+  fill: string; // The hex color for Recharts
+}
+
+/**
+ * Generates data for the Bar Chart.
+ */
+export function getMasteryBarChartData(courseId: string, moduleId: string): BarChartDataPoint[] {
+  const course = courses.find(c => c.id === courseId);
+  if (!course) return [];
+
+  const enrolledMembers = members.filter(m => m.enrolledCourseIds.includes(courseId));
+
+  if (moduleId === "all") {
+    return course.modules.map(mod => {
+      let totalScore = 0;
+      enrolledMembers.forEach(m => {
+        totalScore += getMemberModuleData(m.id, courseId, mod.id).score;
+      });
+      const avgScore = enrolledMembers.length > 0 ? Math.round(totalScore / enrolledMembers.length) : 0;
+      
+      return {
+        // FIX: Changed mod.title to mod.name
+        name: mod.name || `Module ${mod.id.replace('m', '')}`,
+        rate: avgScore,
+      };
+    });
+  } else {
+    let totalScore = 0;
+    enrolledMembers.forEach(m => {
+      totalScore += getMemberModuleData(m.id, courseId, moduleId).score;
+    });
+    const baseAvg = enrolledMembers.length > 0 ? Math.round(totalScore / enrolledMembers.length) : 0;
+
+    return [
+      { name: "Quiz 1", rate: Math.min(100, baseAvg + 6) },
+      { name: "Quiz 2", rate: Math.max(0, baseAvg - 4) },
+      { name: "Quiz 3", rate: baseAvg },
+    ];
+  }
+}
+
+/**
+ * Generates data for the Cluster Pie/Donut Chart.
+ */
+export function getClusterPieChartData(
+  courseId: string, 
+  moduleId: string, 
+  thresholds: ThresholdConfig
+): PieChartDataPoint[] {
+  const learners = getLearnerDataForModule(courseId, moduleId, thresholds);
+  
+  const counts: Record<ClusterName, number> = {
+    mastery: 0,
+    overconfident: 0,
+    underconfident: 0,
+    struggling: 0,
+  };
+
+  learners.forEach(l => {
+    counts[l.cluster]++;
+  });
+
+  const pieData = [
+    { name: "Mastery", value: counts.mastery, fill: clusterColors.mastery },
+    { name: "Overconfident", value: counts.overconfident, fill: clusterColors.overconfident },
+    { name: "Underconfident", value: counts.underconfident, fill: clusterColors.underconfident },
+    { name: "Struggling", value: counts.struggling, fill: clusterColors.struggling },
+  ];
+
+  return pieData.filter(data => data.value > 0); 
 }

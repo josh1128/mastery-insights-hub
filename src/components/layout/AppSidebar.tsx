@@ -42,16 +42,19 @@ export function AppSidebar() {
         const active = checkActive(item.url);
         return (
           <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild className="h-auto p-0 hover:bg-transparent">
+            <SidebarMenuButton asChild className="h-auto p-0 hover:bg-transparent active:bg-transparent">
               <NavLink
                 to={item.url}
-                end
+                // 'end' is important for the Home route so it doesn't stay active everywhere
+                end={item.url === "/"} 
                 className={cn(
-                  /* ALIGNMENT FIX: Set px-3 here so icons start at the exact same point as the labels */
-                  "flex items-center w-full transition-all duration-150 py-2.5 px-3 rounded-lg",
+                  "flex items-center w-full transition-all duration-150 py-2.5 px-3 rounded-lg outline-none select-none",
+                  // Added focus:ring-0 and active:scale-95 for a more natural feel without the black flash
                   active 
                     ? "bg-[#EEF2FF] text-[#4F46E5]" 
-                    : "text-[#64748B] hover:bg-slate-50 hover:text-slate-900"
+                    : "text-[#64748B] hover:bg-slate-50 hover:text-slate-900",
+                  // This line specifically kills the default "tap" highlight on mobile and black flash on desktop
+                  "active:bg-[#EEF2FF] active:text-[#4F46E5] focus-visible:ring-0"
                 )}
               >
                 <div className={cn(

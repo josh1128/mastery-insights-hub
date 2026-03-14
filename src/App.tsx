@@ -16,9 +16,10 @@ import { AutomationsPage } from "./pages/PlaceholderPages";
 import ContentPage from "./pages/ContentPage";
 import LearnerQuiz from "./pages/LearnerQuiz";
 import LearnerLecture from "./pages/LearnerLecture";
+import { LearnerLayout } from "@/components/layout/LearnerLayout";
+import MarcusDashboard from "@/pages/learner/MarcusDashboard";
 
 const queryClient = new QueryClient();
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -26,22 +27,25 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppLayout>
-            <Routes>
+          <Routes>
+            {/* INSTRUCTOR ROUTES: These use the standard AppLayout */}
+            <Route element={<AppLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/courses" element={<CoursesPage />} />
               <Route path="/courses/:id" element={<CourseDetail />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/admin/members" element={<MembersPage />} />
               <Route path="/admin/content" element={<ContentPage />} />
-              <Route path="/admin/automations" element={<AutomationsPage />} />
               <Route path="/insights/engagement" element={<EngagementPage />} />
               <Route path="/insights/mastery" element={<MasteryPage />} />
-              <Route path="/learn/quiz/:quizId" element={<LearnerQuiz />} />
-              <Route path="/learn/lecture/:lectureId" element={<LearnerLecture />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
+            </Route>
+
+            {/* Change this part in your App.tsx */}
+            <Route path="/learner" element={<LearnerLayout />}>
+              <Route path="/learner/dashboard" element={<MarcusDashboard />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </div>

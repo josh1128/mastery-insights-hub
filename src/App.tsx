@@ -22,6 +22,7 @@ import MarcusCourses from "@/pages/learner/MarcusCourses";
 import MarcusCoursesDetails from "@/pages/learner/MarcusCoursesDetails";
 import MarcusChat from "@/pages/learner/MarcusChat";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (

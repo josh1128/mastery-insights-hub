@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Lock, CheckCircle2 } from "lucide-react";
+import { Lock, CheckCircle2 } from "lucide-react";
 import { contentStore } from "@/data/contentStore";
+import { getClusterContentForModule } from "@/lib/clusterModuleContent";
+import { defaultThresholds, classifyStudent } from "@/data/masteryData";
+import type { ClusterModuleContent } from "@/lib/clusterModuleContent";
+import type { ClusterName } from "@/data/masteryData";
 
 type ConfidenceLevel = "not-sure" | "unsure" | "confident" | null;
 
@@ -10,12 +14,6 @@ const confidenceColors: Record<string, string> = {
   "not-sure": "hsl(0 72% 51%)",
   unsure: "hsl(45 93% 47%)",
   confident: "hsl(142 71% 45%)",
-};
-
-const confidenceLabels: Record<string, string> = {
-  "not-sure": "Not sure",
-  unsure: "Unsure",
-  confident: "Confident",
 };
 
 const confidenceOrder: ConfidenceLevel[] = ["not-sure", "unsure", "confident"];
@@ -38,6 +36,8 @@ export default function LearnerQuiz() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [confidences, setConfidences] = useState<Record<string, ConfidenceLevel>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [clusterContent, setClusterContent] = useState<ClusterModuleContent | null>(null);
+  const [resolvedCluster, setResolvedCluster] = useState<ClusterName | null>(null);
 
   if (!quiz) return <div className="p-8 text-center">Quiz not found.</div>;
 
@@ -71,7 +71,6 @@ export default function LearnerQuiz() {
   };
 
   const handleSubmit = () => {
-    setSubmitted(true);
     const total = quiz.questions.length;
     const correct = quiz.questions.filter((q) => answers[q.id] === q.correctAnswer).length;
     const confidencesArray = Object.values(confidences).filter(Boolean) as ConfidenceLevel[];
@@ -79,12 +78,15 @@ export default function LearnerQuiz() {
       confidencesArray.length > 0
         ? Math.round(
             confidencesArray.reduce((sum, level) => {
-                if (level === "not-sure") return sum + 0;
-                if (level === "unsure") return sum + 50;
-                return sum + 100;
+              if (level === "not-sure") return sum + 0;
+              if (level === "unsure") return sum + 50;
+              return sum + 100;
             }, 0) / confidencesArray.length,
           )
         : null;
+
+    const currentScore = Math.round((correct / total) * 100);
+    const currentConfidence = averageConfidence ?? 0;
 
     contentStore.recordQuizResult({
       id: `qr-${Date.now()}`,
@@ -92,11 +94,27 @@ export default function LearnerQuiz() {
       quizId: quiz.id,
       courseId: quiz.courseId,
       moduleId: quiz.moduleId,
-      score: Math.round((correct / total) * 100),
+      score: currentScore,
       averageConfidence,
       isRetest: !!quiz.isRetest,
       submittedAt: new Date().toISOString(),
     });
+
+    const cluster = classifyStudent(
+      { score: currentScore, confidence: currentConfidence },
+      defaultThresholds
+    );
+
+    const content = getClusterContentForModule(
+      quiz.courseId,
+      quiz.moduleId,
+      cluster,
+      defaultThresholds
+    );
+
+    setResolvedCluster(cluster);
+    setClusterContent(content);
+    setSubmitted(true);
   };
 
   const getAnswerStyle = (qId: string, value: string) => {
@@ -121,15 +139,22 @@ export default function LearnerQuiz() {
   if (submitted) {
     const quizScore = quiz.questions.filter((q) => answers[q.id] === q.correctAnswer).length;
     const answeredConfidences = Object.values(confidences).filter(Boolean) as ConfidenceLevel[];
-    const confidencePercent = answeredConfidences.length > 0
-      ? Math.round(
-          answeredConfidences.reduce((sum, level) => {
-            if (level === "not-sure") return sum + 0;
-            if (level === "unsure") return sum + 50;
-            return sum + 100;
-          }, 0) / answeredConfidences.length
-        )
-      : 0;
+    const confidencePercent =
+      answeredConfidences.length > 0
+        ? Math.round(
+            answeredConfidences.reduce((sum, level) => {
+              if (level === "not-sure") return sum + 0;
+              if (level === "unsure") return sum + 50;
+              return sum + 100;
+            }, 0) / answeredConfidences.length,
+          )
+        : 0;
+
+    const retest = clusterContent?.clusterAdditions.retestQuiz ?? null;
+    const extraResources = [
+      ...(clusterContent?.clusterAdditions.resources ?? []),
+      ...(clusterContent?.clusterAdditions.optionalResources ?? []),
+    ];
 
     return (
       <div className="max-w-2xl mx-auto space-y-8 animate-fade-in py-8">
@@ -139,16 +164,53 @@ export default function LearnerQuiz() {
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Quiz Complete!</h1>
         </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Correctness</p>
-            <p className="text-4xl font-black text-slate-900">{Math.round((quizScore / quiz.questions.length) * 100)}%</p>
+            <p className="text-4xl font-black text-slate-900">
+              {Math.round((quizScore / quiz.questions.length) * 100)}%
+            </p>
           </div>
           <div className="rounded-[2rem] border border-slate-100 bg-white p-8 text-center shadow-sm">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg Confidence</p>
             <p className="text-4xl font-black text-slate-900">{confidencePercent}%</p>
           </div>
         </div>
+
+        <div className="rounded-[2rem] border border-slate-100 bg-white p-8 space-y-4 shadow-sm">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Recommended by Your Instructor
+          </p>
+          {resolvedCluster === "mastery" ? (
+            <p className="text-sm text-slate-700 leading-relaxed">Good job! Keep it up.</p>
+          ) : (
+            <ul className="space-y-3">
+              {retest && (
+                <li className="flex items-start gap-3">
+                  <div className="mt-1.5 h-2 w-2 rounded-full bg-violet-500 shrink-0" />
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    Retest available:{" "}
+                    <span className="font-semibold text-slate-900">{retest.title}</span>
+                  </p>
+                </li>
+              )}
+              {extraResources.map((r) => (
+                <li key={r.id} className="flex items-start gap-3">
+                  <div className="mt-1.5 h-2 w-2 rounded-full bg-violet-500 shrink-0" />
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    {r.isOptional ? "Optional resource: " : "Extra resource: "}
+                    <span className="font-semibold text-slate-900">{r.title}</span>
+                  </p>
+                </li>
+              ))}
+              {!retest && extraResources.length === 0 && (
+                <li className="text-sm text-slate-500 italic">No action items assigned yet.</li>
+              )}
+            </ul>
+          )}
+        </div>
+
         <div className="flex justify-center">
           <Link to={returnPath}>
             <Button variant="outline" className="rounded-full px-8">Return Home</Button>

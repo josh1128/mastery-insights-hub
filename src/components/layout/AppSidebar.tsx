@@ -93,7 +93,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <span className="text-xl font-bold text-[#1E293B] tracking-tight">
-              Disco
+              Misco
             </span>
           )}
         </div>

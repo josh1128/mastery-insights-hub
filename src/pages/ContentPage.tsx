@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, FileText, Video, Trash2, Pencil, Play, Upload, File, ToggleLeft } from "lucide-react";
 import { courses } from "@/data/courses";
 import { contentStore } from "@/data/contentStore";
 import { QuizAuthoringDialog } from "@/components/content/QuizAuthoringDialog";
@@ -16,6 +15,7 @@ import { VideoLectureDialog } from "@/components/content/VideoLectureDialog";
 import { toast } from "sonner";
 import { PageGlow } from "@/components/decorative/PageDecorations";
 import type { Quiz, VideoLecture, Resource } from "@/data/contentStore";
+import { Plus, FileText, Video, Trash2, Pencil, Upload, File, ToggleLeft } from "lucide-react";
 
 export default function ContentPage() {
   const [, forceUpdate] = useReducer(x => x + 1, 0);
@@ -240,9 +240,7 @@ export default function ContentPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Link to={`/learn/lecture/${vid.id}`}>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" title="Preview"><Play className="h-3.5 w-3.5" /></Button>
-                          </Link>
+
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={() => openEditVideo(vid)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
@@ -270,9 +268,6 @@ export default function ContentPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Link to={`/learn/quiz/${quiz.id}`}>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" title="Preview"><Play className="h-3.5 w-3.5" /></Button>
-                          </Link>
                           <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full" onClick={() => openEditQuiz(quiz)}>
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
